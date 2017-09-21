@@ -21,7 +21,7 @@ import javax.annotation.Nonnull;
 
 public interface PinotKafkaConsumerFactory {
   PinotKafkaConsumer buildConsumer(@Nonnull String bootstrapNodes, @Nonnull String clientId, @Nonnull String topic, @Nonnull int partition,
-      @Nonnull long connectTimeoutMillis);
+      @Nonnull long connectTimeoutMillis, String kafkaSchemaRegistry);
 
   PinotKafkaConsumer buildMetadataFetcher(@Nonnull String bootstrapNodes, @Nonnull String clientId, @Nonnull long connectTimeoutMillis);
 }

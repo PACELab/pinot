@@ -46,6 +46,7 @@ public class KafkaStreamMetadata implements StreamMetadata {
   private String _consumerFactory;
   private final long _kafkaConnectionTimeoutMillis;
   private final int _kafkaFetchTimeoutMillis;
+  private final String _kafkaSchemaRegistry;
   private final Map<String, String> _decoderProperties = new HashMap<String, String>();
   private final Map<String, String> _kafkaConsumerProperties = new HashMap<String, String>();
   private final Map<String, String> _streamConfigMap = new HashMap<String, String>();
@@ -54,6 +55,7 @@ public class KafkaStreamMetadata implements StreamMetadata {
   private static final int DEFAULT_KAFKA_FETCH_TIMEOUT_MILLIS = 5000;
 
   public KafkaStreamMetadata(Map<String, String> streamConfigMap) {
+    _kafkaSchemaRegistry = streamConfigMap.get("stream.kafka.decoder.prop.schema.registry.rest.url");
     _zkBrokerUrl =
         streamConfigMap.get(StringUtil.join(".", Helix.DataSource.STREAM_PREFIX,
             Helix.DataSource.Realtime.Kafka.HighLevelConsumer.ZK_CONNECTION_STRING));
@@ -188,6 +190,10 @@ public class KafkaStreamMetadata implements StreamMetadata {
     return _kafkaConsumerProperties;
   }
 
+  public String getKafkaSchemaRegistry() {
+    return _kafkaSchemaRegistry;
+  }
+
   @Override
   public String toString() {
     final StringBuilder result = new StringBuilder();
@@ -230,7 +236,8 @@ public class KafkaStreamMetadata implements StreamMetadata {
         isEqual(_decoderClass, that._decoderClass) &&
         isEqual(_decoderProperties, that._decoderProperties) &&
         isEqual(_streamConfigMap, that._streamConfigMap) &&
-        isEqual(_consumerFactory, that._consumerFactory);
+        isEqual(_consumerFactory, that._consumerFactory) &&
+        isEqual(_kafkaSchemaRegistry, that._kafkaSchemaRegistry);
   }
 
   @Override
@@ -242,6 +249,7 @@ public class KafkaStreamMetadata implements StreamMetadata {
     result = hashCodeOf(result, _decoderProperties);
     result = hashCodeOf(result, _streamConfigMap);
     result = hashCodeOf(result, _consumerFactory);
+    result = hashCodeOf(result, _kafkaSchemaRegistry);
     return result;
   }
 

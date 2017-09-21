@@ -174,6 +174,7 @@ public class LLRealtimeSegmentDataManager extends RealtimeSegmentDataManager {
   private final SegmentBuildTimeLeaseExtender _leaseExtender;
   private SegmentFileAndOffset _segmentFileAndOffset;
   private PinotKafkaConsumerFactory _pinotKafkaConsumerFactory;
+  private String _kafkaSchemaRegistry;
 
   // Segment end criteria
   private volatile long _consumeEndTime = 0;
@@ -881,6 +882,8 @@ public class LLRealtimeSegmentDataManager extends RealtimeSegmentDataManager {
       _pinotKafkaConsumerFactory = new SimpleConsumerFactory();
     }
 
+    _kafkaSchemaRegistry = indexingConfig.getStreamConfigs().get("stream.kafka.decoder.prop.schema.registry.rest.url");
+
     _kafkaStreamMetadata = new KafkaStreamMetadata(indexingConfig.getStreamConfigs());
     KafkaLowLevelStreamProviderConfig kafkaStreamProviderConfig = createStreamProviderConfig();
     kafkaStreamProviderConfig.init(tableConfig, instanceZKMetadata, schema);
@@ -1022,7 +1025,7 @@ public class LLRealtimeSegmentDataManager extends RealtimeSegmentDataManager {
     }
     segmentLogger.info("Creating new Kafka consumer wrapper, reason: {}", reason);
     _consumerWrapper = _pinotKafkaConsumerFactory.buildConsumer(_kafkaBootstrapNodes, _clientId, _kafkaTopic,
-        _kafkaPartitionId, _kafkaStreamMetadata.getKafkaConnectionTimeoutMillis());
+        _kafkaPartitionId, _kafkaStreamMetadata.getKafkaConnectionTimeoutMillis(), _kafkaSchemaRegistry);
   }
 
   // This should be done during commit? We may not always commit when we build a segment....

@@ -235,8 +235,12 @@ public class PinotLLCRealtimeSegmentManager {
     // Allocate kafka partitions across server instances.
     ZNRecord znRecord = generatePartitionAssignment(topicName, nPartitions, instanceNames, nReplicas);
     writeKafkaPartitionAssignment(realtimeTableName, znRecord);
-    setupInitialSegments(realtimeTableName, znRecord, topicName, initialOffset, bootstrapHosts, idealState, create,
-        nReplicas, flushSize);
+    try {
+      setupInitialSegments(realtimeTableName, znRecord, topicName, initialOffset, bootstrapHosts, idealState, create,
+          nReplicas, flushSize);
+    } catch (Exception e) {
+      LOGGER.error("Could not get stream configs, Exception {}", e);
+    }
   }
 
   // Remove all trace of LLC for this table.
@@ -273,7 +277,7 @@ public class PinotLLCRealtimeSegmentManager {
   }
 
   protected void setupInitialSegments(String realtimeTableName, ZNRecord partitionAssignment, String topicName, String
-      initialOffset, String bootstrapHosts, IdealState idealState, boolean create, int nReplicas, int flushSize) {
+      initialOffset, String bootstrapHosts, IdealState idealState, boolean create, int nReplicas, int flushSize) throws Exception {
     List<String> currentSegments = getExistingSegments(realtimeTableName);
     // Make sure that there are no low-level segments existing.
     if (currentSegments != null) {
@@ -308,14 +312,19 @@ public class PinotLLCRealtimeSegmentManager {
       metadata.setCreationTime(now);
 
       String consumerFactory;
+      Map<String, String> streamConfigs =
+            _tableConfigCache.getTableConfig(realtimeTableName).getIndexingConfig().getStreamConfigs();
       try {
-        consumerFactory = _tableConfigCache.getTableConfig(realtimeTableName).getIndexingConfig().getStreamConfigs()
-            .get("stream.kafka.consumer.factory");
+        consumerFactory = streamConfigs.get("stream.kafka.consumer.factory");
+        LOGGER.info("Consumer factory {}", consumerFactory);
       } catch (Exception e) {
         LOGGER.info("Caught Exception {}, could not get kafka consumer factory, defaulting to SimpleConsumerFactory", e);
         consumerFactory = new SimpleConsumerFactory().toString();
       }
-      final long startOffset = getPartitionOffset(topicName, bootstrapHosts, initialOffset, i, consumerFactory);
+      String kafkaSchemaRegistry = streamConfigs.get("stream.kafka.decoder.prop.schema.registry.rest.url");
+      LOGGER.info("kafkaSchemaRegistry {}", kafkaSchemaRegistry);
+
+      final long startOffset = getPartitionOffset(topicName, bootstrapHosts, initialOffset, i, consumerFactory, kafkaSchemaRegistry);
       LOGGER.info("Setting start offset for segment {} to {}", segName, startOffset);
       metadata.setStartOffset(startOffset);
       metadata.setEndOffset(END_OFFSET_FOR_CONSUMING_SEGMENTS);
@@ -882,12 +891,13 @@ public class PinotLLCRealtimeSegmentManager {
     final String topicName = kafkaStreamMetadata.getKafkaTopicName();
     final String bootstrapHosts = kafkaStreamMetadata.getBootstrapHosts();
     final String consumerFactory = kafkaStreamMetadata.getConsumerFactory();
+    final String kafkaSchemaRegistry = kafkaStreamMetadata.getKafkaSchemaRegistry();
 
-    return getPartitionOffset(topicName, bootstrapHosts, offsetCriteria, partitionId, consumerFactory);
+    return getPartitionOffset(topicName, bootstrapHosts, offsetCriteria, partitionId, consumerFactory, kafkaSchemaRegistry);
   }
 
-  private long getPartitionOffset(final String topicName, final String bootstrapHosts, final String offsetCriteria, int partitionId, String consumerFactory) {
-    KafkaOffsetFetcher kafkaOffsetFetcher = new KafkaOffsetFetcher(topicName, bootstrapHosts, offsetCriteria, partitionId, consumerFactory);
+  private long getPartitionOffset(final String topicName, final String bootstrapHosts, final String offsetCriteria, int partitionId, String consumerFactory, String kafkaSchemaRegistry) {
+    KafkaOffsetFetcher kafkaOffsetFetcher = new KafkaOffsetFetcher(topicName, bootstrapHosts, offsetCriteria, partitionId, consumerFactory, kafkaSchemaRegistry);
     RetryPolicy policy = RetryPolicies.fixedDelayRetryPolicy(3, 1000);
     boolean success = policy.attempt(kafkaOffsetFetcher);
     if (success) {
@@ -1211,10 +1221,11 @@ public class PinotLLCRealtimeSegmentManager {
 
     private Exception _exception = null;
     private long _offset = -1;
-    private PinotKafkaConsumerFactory _pinotKafkaConsumerFactory = new SimpleConsumerFactory();
+    private PinotKafkaConsumerFactory _pinotKafkaConsumerFactory;
+    private String _kafkaSchemaRegistry;
 
 
-    private KafkaOffsetFetcher(final String topicName, final String bootstrapHosts, final String offsetCriteria, int partitionId, String consumerFactory) {
+    private KafkaOffsetFetcher(final String topicName, final String bootstrapHosts, final String offsetCriteria, int partitionId, String consumerFactory, String kafkaSchemaRegistry) {
       _topicName = topicName;
       _bootstrapHosts = bootstrapHosts;
       _offsetCriteria = offsetCriteria;
@@ -1225,6 +1236,7 @@ public class PinotLLCRealtimeSegmentManager {
         LOGGER.info("Invalid consumer factory set. Caught exception {}, setting to default SimpleConsumerFactory", e);
         _pinotKafkaConsumerFactory = new SimpleConsumerFactory();
       }
+      _kafkaSchemaRegistry = kafkaSchemaRegistry;
     }
 
     private long getOffset() {
@@ -1240,7 +1252,7 @@ public class PinotLLCRealtimeSegmentManager {
 
       PinotKafkaConsumer
           kafkaConsumer = _pinotKafkaConsumerFactory.buildConsumer(_bootstrapHosts, "dummyClientId", _topicName,
-          _partitionId, KAFKA_PARTITION_OFFSET_FETCH_TIMEOUT_MILLIS);
+          _partitionId, KAFKA_PARTITION_OFFSET_FETCH_TIMEOUT_MILLIS, _kafkaSchemaRegistry);
       try {
         _offset = kafkaConsumer.fetchPartitionOffset(_offsetCriteria, KAFKA_PARTITION_OFFSET_FETCH_TIMEOUT_MILLIS);
         if (_exception != null) {

@@ -180,6 +180,10 @@ public class KafkaHighLevelStreamProviderConfig implements StreamProviderConfig 
     return ret;
   }
 
+  public String getSchemaRegistry() {
+    return decoderProps.get("schema.registry.rest.url");
+  }
+
   @Override
   public String getStreamProviderClass() {
     return null;
