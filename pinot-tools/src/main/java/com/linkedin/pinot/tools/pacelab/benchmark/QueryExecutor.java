@@ -45,6 +45,7 @@ public abstract class QueryExecutor {
         //queryExecutors.add(JobApplyQueryExecutor.getInstance());
         //queryExecutors.add(AdClickQueryExecutor.getInstance());
         //queryExecutors.add(ArticleReadQueryExecutor.getInstance());
+        //queryExecutors.add(CompanySearchQueryExecutor.getInstance());
 
         return queryExecutors;
     }
