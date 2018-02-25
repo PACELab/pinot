@@ -1,61 +1,74 @@
 {
   "metricFieldSpecs": [
     {
-      "dataType": "LONG",
-      "name" : "ApplyStartTime"
+      "singleValueField" : true,
+      "dataType": "INT",
+      "name" : "ReviewTime"
     },
     {
       "singleValueField" : true,
       "dataType": "INT",
-      "name" : "TimeSpent"
+      "name" : "ViewerProfileStrength"
     },
     {
-      "singleValueField" : true,
+      "singleValueField": true,
       "dataType": "INT",
-      "name" : "JobSalary"
+      "name": "ViewedProfileStrength"
     }
   ],
   "dimensionFieldSpecs": [
     {
       "singleValueField" : true,
       "dataType": "STRING",
-      "name" : "ApplicantProfileId"
+      "name" : "ViewerProfileId"
     },
     {
       "singleValueField" : true,
       "dataType": "STRING",
-      "name" : "ApplicantHeadline"
+      "name": "ViewerWorkPlace"
     },
     {
       "singleValueField" : true,
       "dataType": "STRING",
-      "name" : "ApplicantPosition"
+      "name": "ViewerHeadline"
     },
     {
       "singleValueField" : true,
       "dataType": "STRING",
-      "name" : "JobID"
+      "name": "ViewerPosition"
     },
     {
       "singleValueField" : true,
       "dataType": "STRING",
-      "name" : "JobUrl"
+      "name" : "ViewedProfileId"
     },
     {
       "singleValueField" : true,
       "dataType": "STRING",
-      "name": "JobTitle"
+      "name": "ViewedProfileWorkPlace"
     },
     {
       "singleValueField" : true,
       "dataType": "STRING",
-      "name": "JobCompany"
+      "name": "ViewedProfileHeadline"
     },
     {
       "singleValueField" : true,
       "dataType": "STRING",
-      "name": "DidApplyIsFinalized"
+      "name": "ViewedProfilePosition"
+    },
+    {
+      "singleValueField" : true,
+      "dataType": "STRING",
+      "name": "WereProfilesConnected"
     }
   ],
-  "schemaName": "JobApplySchema"
+  "timeFieldSpec": {
+    "incomingGranularitySpec": {
+      "timeType": "SECONDS",
+      "dataType": "LONG",
+      "name": "ViewStartTime"
+    }
+  },
+  "schemaName": "ProfileViewSchema"
 }

@@ -1,10 +1,12 @@
 {
-  "tableName": "AdClick",
+  "tableName": "ArticleRead",
   "tableType": "OFFLINE",
   "segmentsConfig": {
     "segmentPushType": "APPEND",
+    "timeColumnName": "ReadStartTime",
+    "timeType": "SECONDS",
     "segmentAssignmentStrategy": "BalanceNumSegmentAssignmentStrategy",
-    "schemaName": "AdClickSchema",
+    "schemaName": "ArticleReadSchema",
     "replication": "1"
   },
   "tenants": {

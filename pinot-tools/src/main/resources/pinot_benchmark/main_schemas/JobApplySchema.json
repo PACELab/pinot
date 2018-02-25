@@ -1,56 +1,64 @@
 {
   "metricFieldSpecs": [
     {
-      "dataType": "LONG",
-      "name" : "ViewStartTime"
+      "singleValueField" : true,
+      "dataType": "INT",
+      "name" : "TimeSpent"
     },
     {
       "singleValueField" : true,
       "dataType": "INT",
-      "name" : "ReviewTime"
+      "name" : "JobSalary"
     }
   ],
   "dimensionFieldSpecs": [
     {
       "singleValueField" : true,
       "dataType": "STRING",
-      "name" : "ViewerProfileId"
+      "name" : "ApplicantProfileId"
     },
     {
       "singleValueField" : true,
       "dataType": "STRING",
-      "name": "ViewerCompany"
+      "name" : "ApplicantHeadline"
     },
     {
       "singleValueField" : true,
       "dataType": "STRING",
-      "name": "ViewerHeadline"
+      "name" : "ApplicantPosition"
     },
     {
       "singleValueField" : true,
       "dataType": "STRING",
-      "name": "ViewerPosition"
+      "name" : "JobID"
     },
     {
       "singleValueField" : true,
       "dataType": "STRING",
-      "name" : "ViewedProfileId"
+      "name" : "JobUrl"
     },
     {
       "singleValueField" : true,
       "dataType": "STRING",
-      "name": "ViewedProfileHeadline"
+      "name": "JobPosition"
     },
     {
       "singleValueField" : true,
       "dataType": "STRING",
-      "name": "ViewedProfilePosition"
+      "name": "JobCompany"
     },
     {
       "singleValueField" : true,
       "dataType": "STRING",
-      "name": "WereProfilesConnected"
+      "name": "DidApplyIsFinalized"
     }
   ],
-  "schemaName": "ProfileViewSchema"
+  "timeFieldSpec": {
+    "incomingGranularitySpec": {
+      "timeType": "SECONDS",
+      "dataType": "LONG",
+      "name": "ApplyStartTime"
+    }
+  },
+  "schemaName": "JobApplySchema"
 }

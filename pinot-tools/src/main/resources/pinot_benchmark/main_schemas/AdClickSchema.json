@@ -2,66 +2,63 @@
   "metricFieldSpecs": [
     {
       "singleValueField" : true,
-      "dataType": "LONG",
-      "name" : "ReadStartTime"
-    },
-    {
-      "singleValueField" : true,
       "dataType": "INT",
-      "name" : "TimeSpent"
+      "name" : "ViewerStrength"
     }
   ],
   "dimensionFieldSpecs": [
     {
       "singleValueField" : true,
       "dataType": "STRING",
-      "name" : "ReaderProfileId"
+      "name" : "ViewerProfileId"
     },
     {
       "singleValueField" : true,
       "dataType": "STRING",
-      "name" : "ReaderHeadline"
+      "name" : "ViewerHeadline"
     },
     {
       "singleValueField" : true,
       "dataType": "STRING",
-      "name" : "ReaderPosition"
+      "name" : "ViewerPosition"
     },
     {
       "singleValueField" : true,
       "dataType": "STRING",
-      "name" : "ArticleID"
+      "name" : "AdID"
     },
     {
       "singleValueField" : true,
       "dataType": "STRING",
-      "name" : "ArticleUrl"
+      "name" : "AdUrl"
     },
     {
       "singleValueField" : true,
       "dataType": "STRING",
-      "name": "ArticleTitle"
+      "name": "AdTitle"
     },
     {
       "singleValueField" : true,
       "dataType": "STRING",
-      "name": "ArticleAbstract"
+      "name": "AdText"
     },
     {
       "singleValueField" : true,
       "dataType": "STRING",
-      "name": "ArticleAuthor"
+      "name": "AdCompany"
     },
     {
       "singleValueField" : true,
       "dataType": "STRING",
-      "name": "ArticleCompany"
-    },
-    {
-      "singleValueField" : true,
-      "dataType": "STRING",
-      "name": "ArticleTopic"
+      "name": "AdCampaign"
     }
   ],
-  "schemaName": "ArticleReadSchema"
+  "timeFieldSpec": {
+    "incomingGranularitySpec": {
+      "timeType": "SECONDS",
+      "dataType": "LONG",
+      "name": "ClickTime"
+    }
+  },
+  "schemaName": "AdClickSchema"
 }

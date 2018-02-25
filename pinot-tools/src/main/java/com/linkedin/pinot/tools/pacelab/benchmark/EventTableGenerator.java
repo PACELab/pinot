@@ -24,7 +24,6 @@ import com.linkedin.pinot.core.data.extractors.FieldExtractor;
 import com.linkedin.pinot.core.data.extractors.FieldExtractorFactory;
 import com.linkedin.pinot.core.data.readers.AvroRecordReader;
 import com.linkedin.pinot.core.data.readers.RecordReader;
-import com.linkedin.pinot.tools.admin.command.EventTableCreationCommand;
 import com.linkedin.pinot.tools.data.generator.RangeIntGenerator;
 import com.linkedin.pinot.tools.data.generator.RangeLongGenerator;
 import com.linkedin.pinot.tools.data.generator.SchemaAnnotation;
@@ -32,49 +31,97 @@ import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.math.IntRange;
-import org.apache.commons.lang.math.LongRange;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Random;
+
+import java.net.URL;
 
 public class EventTableGenerator {
     private String _dataDir;
     private String _outDir;
     private boolean _overwrite = true;
-    private int _numRecords = 10;
-    final String _profileSchemaFile = "pinot_benchmark_schemas/ProfileSchema.json";
-    final String _profileViewSchemaFile = "pinot_benchmark_schemas/ProfileViewSchema.json";
-    final String _profileViewSchemaAnnFile = "pinot_benchmark_schemas/ProfileViewSchemaAnnotation.json";
+    private int _numRecords = 10000;
+    private long _timeColumnStart;
+    private long _timeColumnEnd;
 
-    final String _adSchemaFile = "pinot_benchmark_schemas/AdSchema.json";
-    final String _adClickSchemaFile = "pinot_benchmark_schemas/AdClickSchema.json";
-    final String _adClickSchemaAnnFile = "pinot_benchmark_schemas/AdClickSchemaAnnotation.json";
+    final String _profileSchemaFile = "pinot_benchmark/main_schemas/ProfileSchema.json";
+    final String _profileViewSchemaFile = "pinot_benchmark/main_schemas/ProfileViewSchema.json";
+    final String _profileViewSchemaAnnFile = "pinot_benchmark/main_schemas/ProfileViewSchemaAnnotation.json";
 
-    final String _jobSchemaFile = "pinot_benchmark_schemas/JobSchema.json";
-    final String _jobApplySchemaFile = "pinot_benchmark_schemas/JobApplySchema.json";
-    final String _jobApplySchemaAnnFile = "pinot_benchmark_schemas/JobApplySchemaAnnotation.json";
+    final String _adSchemaFile = "pinot_benchmark/main_schemas/AdSchema.json";
+    final String _adClickSchemaFile = "pinot_benchmark/main_schemas/AdClickSchema.json";
+    final String _adClickSchemaAnnFile = "pinot_benchmark/main_schemas/AdClickSchemaAnnotation.json";
 
-    final String _articleSchemaFile = "pinot_benchmark_schemas/ArticleSchema.json";
-    final String _articleReadSchemaFile = "pinot_benchmark_schemas/ArticleReadSchema.json";
-    final String _articleReadSchemaAnnFile = "pinot_benchmark_schemas/ArticleReadSchemaAnnotation.json";
+    final String _jobSchemaFile = "pinot_benchmark/main_schemas/JobSchema.json";
+    final String _jobApplySchemaFile = "pinot_benchmark/main_schemas/JobApplySchema.json";
+    final String _jobApplySchemaAnnFile = "pinot_benchmark/main_schemas/JobApplySchemaAnnotation.json";
 
-    public EventTableGenerator(String dataDir, String outDir)
+    final String _articleSchemaFile = "pinot_benchmark/main_schemas/ArticleSchema.json";
+    final String _articleReadSchemaFile = "pinot_benchmark/main_schemas/ArticleReadSchema.json";
+    final String _articleReadSchemaAnnFile = "pinot_benchmark/main_schemas/ArticleReadSchemaAnnotation.json";
+    Random _randGen = new Random(System.currentTimeMillis());
+
+    public EventTableGenerator(String dataDir)
+    {
+        _dataDir = dataDir;
+    }
+    public EventTableGenerator(String dataDir, String outDir, int numRecords)
     {
         _dataDir = dataDir;
         _outDir = outDir;
+        _numRecords = numRecords;
     }
 
-    private String getTableDataDirectory(String tableName)
+    public  List<GenericRow> readProfileTable() throws Exception
+    {
+        String profileDataFile = getTableDataDirectory("profile");
+        ClassLoader classLoader = LatencyBasedLoadMetric.class.getClassLoader();
+        String profileSchemaFile = getFileFromResourceUrl(classLoader.getResource(_profileSchemaFile));
+        List<GenericRow> profileTable = readBaseTableData(profileSchemaFile,profileDataFile);
+        return profileTable;
+    }
+    public  List<GenericRow> readJobTable() throws Exception
+    {
+        String jobDataFile = getTableDataDirectory("job");
+        ClassLoader classLoader = LatencyBasedLoadMetric.class.getClassLoader();
+        String jobSchemaFile = getFileFromResourceUrl(classLoader.getResource(_jobSchemaFile));
+        List<GenericRow> jobTable = readBaseTableData(jobSchemaFile,jobDataFile);
+        return jobTable;
+    }
+
+    public  List<GenericRow> readAdTable() throws Exception
+    {
+        String adDataFile = getTableDataDirectory("ad");
+        ClassLoader classLoader = LatencyBasedLoadMetric.class.getClassLoader();
+        String adSchemaFile = getFileFromResourceUrl(classLoader.getResource(_adSchemaFile));
+        List<GenericRow> adTable = readBaseTableData(adSchemaFile,adDataFile);
+        return adTable;
+    }
+
+    public  List<GenericRow> readArticleTable() throws Exception
+    {
+        String articleDataFile = getTableDataDirectory("article");
+        ClassLoader classLoader = LatencyBasedLoadMetric.class.getClassLoader();
+        String articleSchemaFile = getFileFromResourceUrl(classLoader.getResource(_articleSchemaFile));
+        List<GenericRow> articleTable = readBaseTableData(articleSchemaFile,articleDataFile);
+        return articleTable;
+    }
+
+    public String getTableDataDirectory(String tableName)
     {
         String  tableDatDir;
         if(_dataDir.endsWith("/"))
@@ -83,7 +130,7 @@ public class EventTableGenerator {
         }
         else
         {
-            tableDatDir = _dataDir + tableName;
+            tableDatDir = _dataDir + "/" + tableName;
         }
 
         // Filter out all input files.
@@ -107,7 +154,7 @@ public class EventTableGenerator {
         return  files[0].getAbsolutePath();
     }
 
-    private List<GenericRow> readBaseTableData(String schemaFile, String dataFile) throws Exception
+    public List<GenericRow> readBaseTableData(String schemaFile, String dataFile) throws Exception
     {
          List<GenericRow> tableData = new ArrayList<GenericRow>();
 
@@ -198,26 +245,45 @@ public class EventTableGenerator {
 
     }
 
+    public static String getFileFromResourceUrl(@Nonnull URL resourceUrl) {
+        // For maven cross package use case, we need to extract the resource from jar to a temporary directory.
+        String resourceUrlStr = resourceUrl.toString();
+        if (resourceUrlStr.contains("jar!")) {
+            try {
+                String extension = resourceUrlStr.substring(resourceUrlStr.lastIndexOf('.'));
+                File tempFile = File.createTempFile("pinot-test-temp", extension);
+                String tempFilePath = tempFile.getAbsolutePath();
+                //LOGGER.info("Extracting from " + resourceUrlStr + " to " + tempFilePath);
+                FileUtils.copyURLToFile(resourceUrl, tempFile);
+                return tempFilePath;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            return resourceUrl.getFile();
+        }
+    }
 
-    public boolean generateProfileViewTable() throws Exception
+
+    public boolean generateProfileViewTable(long timeColumnStart, long timeColumnEnd, int numRecords) throws Exception
     {
 
-        ClassLoader classLoader = LatencyBasedLoadMetric.class.getClassLoader();
-        String profileSchemaFile = classLoader.getResource(_profileSchemaFile).getFile();
-        String profileViewSchemaFile = classLoader.getResource(_profileViewSchemaFile).getFile();
-        String profileViewSchemaAnn = classLoader.getResource(_profileViewSchemaAnnFile).getFile();
+        ClassLoader classLoader = EventTableGenerator.class.getClassLoader();
+        String profileSchemaFile = getFileFromResourceUrl(classLoader.getResource(_profileSchemaFile));
+        String profileViewSchemaFile = getFileFromResourceUrl(classLoader.getResource(_profileViewSchemaFile));
+        String profileViewSchemaAnn = getFileFromResourceUrl(classLoader.getResource(_profileViewSchemaAnnFile));
 
         String profileDataFile = getTableDataDirectory("profile");
         List<GenericRow> profileTable = readBaseTableData(profileSchemaFile,profileDataFile);
         List<SchemaAnnotation> saList = readSchemaAnnotationFile(profileViewSchemaAnn);
-        RangeLongGenerator eventTimeGenerator = createLongRangeGenerator(saList,"ViewStartTime");
+        RangeLongGenerator eventTimeGenerator = new RangeLongGenerator(timeColumnStart, timeColumnEnd);
         RangeIntGenerator timeSpentGenerator = createIntRangeGenerator(saList,"ReviewTime");
-        File avroFile = createOutDirAndFile("profile-view-data");
+        File avroFile = createOutDirAndFile("ProfileView");
         DataFileWriter<GenericData.Record> recordWriter = createRecordWriter(profileViewSchemaFile,avroFile);
 
         org.apache.avro.Schema schemaJSON = org.apache.avro.Schema.parse(getJSONSchema(Schema.fromFile(new File(profileViewSchemaFile))).toString());
 
-        for(int i=0;i<_numRecords;i++)
+        for(int i=0;i<numRecords;i++)
         {
             final GenericData.Record outRecord = new GenericData.Record(schemaJSON);
             GenericRow viewerProfile = getRandomGenericRow(profileTable);
@@ -229,11 +295,14 @@ public class EventTableGenerator {
 
             outRecord.put("ViewStartTime", eventTimeGenerator.next());
             outRecord.put("ReviewTime",timeSpentGenerator.next());
+            outRecord.put("ViewerProfileStrength",  viewerProfile.getValue("Strength"));
+            outRecord.put("ViewedProfileStrength", viewedProfile.getValue("Strength"));
             outRecord.put("ViewerProfileId", viewerProfile.getValue("ID"));
-            outRecord.put("ViewerCompany", viewerProfile.getValue("Company"));
+            outRecord.put("ViewerWorkPlace", viewerProfile.getValue("WorkPlace"));
             outRecord.put("ViewerHeadline", viewerProfile.getValue("Headline"));
             outRecord.put("ViewerPosition", viewerProfile.getValue("Position"));
             outRecord.put("ViewedProfileId", viewedProfile.getValue("ID"));
+            outRecord.put("ViewedProfileWorkPlace", viewerProfile.getValue("WorkPlace"));
             outRecord.put("ViewedProfileHeadline", viewedProfile.getValue("Headline"));
             outRecord.put("ViewedProfilePosition", viewedProfile.getValue("Position"));
             outRecord.put("WereProfilesConnected", randomYesOrNo());
@@ -245,13 +314,13 @@ public class EventTableGenerator {
         return true;
     }
 
-    public boolean generateAdClickTable() throws Exception
+    public boolean generateAdClickTable(long timeColumnStart, long timeColumnEnd, int numRecords) throws Exception
     {
-        ClassLoader classLoader = LatencyBasedLoadMetric.class.getClassLoader();
-        String profileSchemaFile = classLoader.getResource(_profileSchemaFile).getFile();
-        String adSchemaFile = classLoader.getResource(_adSchemaFile).getFile();
-        String adClickSchemaAnn = classLoader.getResource(_adClickSchemaAnnFile).getFile();
-        String adClickSchemaFile = classLoader.getResource(_adClickSchemaFile).getFile();
+        ClassLoader classLoader = EventTableGenerator.class.getClassLoader();
+        String profileSchemaFile = getFileFromResourceUrl(classLoader.getResource(_profileSchemaFile));
+        String adSchemaFile = getFileFromResourceUrl(classLoader.getResource(_adSchemaFile));
+        String adClickSchemaAnn = getFileFromResourceUrl(classLoader.getResource(_adClickSchemaAnnFile));
+        String adClickSchemaFile = getFileFromResourceUrl(classLoader.getResource(_adClickSchemaFile));
 
         String profileDataFile = getTableDataDirectory("profile");
         List<GenericRow> profileTable = readBaseTableData(profileSchemaFile,profileDataFile);
@@ -260,13 +329,13 @@ public class EventTableGenerator {
         List<GenericRow> adTable = readBaseTableData(adSchemaFile,adDataFile);
 
         List<SchemaAnnotation> saList = readSchemaAnnotationFile(adClickSchemaAnn);
-        RangeLongGenerator eventTimeGenerator = createLongRangeGenerator(saList,"ClickTime");
-        File avroFile = createOutDirAndFile("ad-click-data");
+        RangeLongGenerator eventTimeGenerator = new RangeLongGenerator(timeColumnStart, timeColumnEnd);;
+        File avroFile = createOutDirAndFile("AdClick");
         DataFileWriter<GenericData.Record> recordWriter = createRecordWriter(adClickSchemaFile,avroFile);
 
         org.apache.avro.Schema schemaJSON = org.apache.avro.Schema.parse(getJSONSchema(Schema.fromFile(new File(adClickSchemaFile))).toString());
 
-        for(int i=0;i<_numRecords;i++)
+        for(int i=0;i<numRecords;i++)
         {
             final GenericData.Record outRecord = new GenericData.Record(schemaJSON);
 
@@ -274,6 +343,7 @@ public class EventTableGenerator {
             GenericRow adInfo = getRandomGenericRow(adTable);
 
             outRecord.put("ClickTime", eventTimeGenerator.next());
+            outRecord.put("ViewerStrength", viewerProfile.getValue("Strength"));
             outRecord.put("ViewerProfileId", viewerProfile.getValue("ID"));
             outRecord.put("ViewerHeadline", viewerProfile.getValue("Headline"));
             outRecord.put("ViewerPosition", viewerProfile.getValue("Position"));
@@ -291,13 +361,14 @@ public class EventTableGenerator {
         return true;
     }
 
-    public boolean generateJobApplyTable() throws Exception
+
+    public boolean generateJobApplyTable(long timeColumnStart, long timeColumnEnd, int numRecords) throws Exception
     {
-        ClassLoader classLoader = LatencyBasedLoadMetric.class.getClassLoader();
-        String profileSchemaFile = classLoader.getResource(_profileSchemaFile).getFile();
-        String jobSchemaFile = classLoader.getResource(_jobSchemaFile).getFile();
-        String jobApplySchemaAnn = classLoader.getResource(_jobApplySchemaAnnFile).getFile();
-        String jobApplySchemaFile = classLoader.getResource(_jobApplySchemaFile).getFile();
+        ClassLoader classLoader = EventTableGenerator.class.getClassLoader();
+        String profileSchemaFile = getFileFromResourceUrl(classLoader.getResource(_profileSchemaFile));
+        String jobSchemaFile = getFileFromResourceUrl(classLoader.getResource(_jobSchemaFile));
+        String jobApplySchemaAnn = getFileFromResourceUrl(classLoader.getResource(_jobApplySchemaAnnFile));
+        String jobApplySchemaFile = getFileFromResourceUrl(classLoader.getResource(_jobApplySchemaFile));
 
         String profileDataFile = getTableDataDirectory("profile");
         List<GenericRow> profileTable = readBaseTableData(profileSchemaFile,profileDataFile);
@@ -306,15 +377,15 @@ public class EventTableGenerator {
         List<GenericRow> jobTable = readBaseTableData(jobSchemaFile,jobDataFile);
 
         List<SchemaAnnotation> saList = readSchemaAnnotationFile(jobApplySchemaAnn);
-        RangeLongGenerator eventTimeGenerator = createLongRangeGenerator(saList,"ApplyStartTime");
+        RangeLongGenerator eventTimeGenerator = new RangeLongGenerator(timeColumnStart, timeColumnEnd);
         RangeIntGenerator timeSpentGenerator = createIntRangeGenerator(saList,"TimeSpent");
 
-        File avroFile = createOutDirAndFile("job-apply-data");
+        File avroFile = createOutDirAndFile("JobApply");
         DataFileWriter<GenericData.Record> recordWriter = createRecordWriter(jobApplySchemaFile,avroFile);
 
         org.apache.avro.Schema schemaJSON = org.apache.avro.Schema.parse(getJSONSchema(Schema.fromFile(new File(jobApplySchemaFile))).toString());
 
-        for(int i=0;i<_numRecords;i++)
+        for(int i=0;i<numRecords;i++)
         {
             final GenericData.Record outRecord = new GenericData.Record(schemaJSON);
 
@@ -329,7 +400,7 @@ public class EventTableGenerator {
             outRecord.put("ApplicantPosition", applicantProfile.getValue("Position"));
             outRecord.put("JobID", jobInfo.getValue("ID"));
             outRecord.put("JobUrl", jobInfo.getValue("Url"));
-            outRecord.put("JobTitle", jobInfo.getValue("Title"));
+            outRecord.put("JobPosition", jobInfo.getValue("Position"));
             outRecord.put("JobCompany", jobInfo.getValue("Company"));
             outRecord.put("DidApplyIsFinalized", randomYesOrNo());
 
@@ -340,13 +411,14 @@ public class EventTableGenerator {
         return true;
     }
 
-    public boolean generateArticleReadTable() throws Exception
+
+    public boolean generateArticleReadTable(long timeColumnStart, long timeColumnEnd, int numRecords) throws Exception
     {
-        ClassLoader classLoader = LatencyBasedLoadMetric.class.getClassLoader();
-        String profileSchemaFile = classLoader.getResource(_profileSchemaFile).getFile();
-        String articleSchemaFile = classLoader.getResource(_articleSchemaFile).getFile();
-        String articleReadSchemaAnn = classLoader.getResource(_articleReadSchemaAnnFile).getFile();
-        String articleReadSchemaFile = classLoader.getResource(_articleReadSchemaFile).getFile();
+        ClassLoader classLoader = EventTableGenerator.class.getClassLoader();
+        String profileSchemaFile = getFileFromResourceUrl(classLoader.getResource(_profileSchemaFile));
+        String articleSchemaFile = getFileFromResourceUrl(classLoader.getResource(_articleSchemaFile));
+        String articleReadSchemaAnn = getFileFromResourceUrl(classLoader.getResource(_articleReadSchemaAnnFile));
+        String articleReadSchemaFile = getFileFromResourceUrl(classLoader.getResource(_articleReadSchemaFile));
 
         String profileDataFile = getTableDataDirectory("profile");
         List<GenericRow> profileTable = readBaseTableData(profileSchemaFile,profileDataFile);
@@ -355,15 +427,15 @@ public class EventTableGenerator {
         List<GenericRow> articleTable = readBaseTableData(articleSchemaFile, articleDataFile);
 
         List<SchemaAnnotation> saList = readSchemaAnnotationFile(articleReadSchemaAnn);
-        RangeLongGenerator eventTimeGenerator = createLongRangeGenerator(saList,"ReadStartTime");
+        RangeLongGenerator eventTimeGenerator = new RangeLongGenerator(timeColumnStart, timeColumnEnd);
         RangeIntGenerator timeSpentGenerator = createIntRangeGenerator(saList,"TimeSpent");
 
-        File avroFile = createOutDirAndFile("article-read-data");
+        File avroFile = createOutDirAndFile("ArticleRead");
         DataFileWriter<GenericData.Record> recordWriter = createRecordWriter(articleReadSchemaFile,avroFile);
 
         org.apache.avro.Schema schemaJSON = org.apache.avro.Schema.parse(getJSONSchema(Schema.fromFile(new File(articleReadSchemaFile))).toString());
 
-        for(int i=0;i<_numRecords;i++)
+        for(int i=0;i<numRecords;i++)
         {
             final GenericData.Record outRecord = new GenericData.Record(schemaJSON);
 
@@ -371,7 +443,8 @@ public class EventTableGenerator {
             GenericRow articleInfo = getRandomGenericRow(articleTable);
 
             outRecord.put("ReadStartTime", eventTimeGenerator.next());
-            outRecord.put("TimeSepnt", timeSpentGenerator.next());
+            outRecord.put("TimeSpent", timeSpentGenerator.next());
+            outRecord.put("ReaderStrength", readerProfile.getValue("Strength"));
             outRecord.put("ReaderProfileId", readerProfile.getValue("ID"));
             outRecord.put("ReaderHeadline", readerProfile.getValue("Headline"));
             outRecord.put("ReaderPosition", readerProfile.getValue("Position"));
@@ -391,17 +464,18 @@ public class EventTableGenerator {
     }
 
 
+
     private String randomYesOrNo()
     {
-        Random randGen = new Random(System.currentTimeMillis());
-        int index = randGen.nextInt(1);
+
+        int index = _randGen.nextInt(2);
         if(index == 1)
             return "Yes";
         else
             return "NO";
     }
 
-    private GenericRow getRandomGenericRow(List<GenericRow> rowList)
+    public GenericRow getRandomGenericRow(List<GenericRow> rowList)
     {
         int size = rowList.size();
         Random randGen = new Random(System.currentTimeMillis());
@@ -423,6 +497,15 @@ public class EventTableGenerator {
         ret.put("fields", fields);
 
         return ret;
+    }
+
+    public static void main(String[] args) throws Exception
+    {
+        String str = "Jun 13 2003 23:11:52.454 UTC";
+        SimpleDateFormat df = new SimpleDateFormat("MMM dd yyyy HH:mm:ss.SSS zzz");
+        Date date = df.parse(str);
+        long epoch = date.getTime();
+        System.out.println(epoch); // 1055545912454
     }
 }
 

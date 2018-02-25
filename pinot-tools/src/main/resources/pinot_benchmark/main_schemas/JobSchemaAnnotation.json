@@ -8,6 +8,14 @@
     "maxLength" : 64
   },
   {
+    "column" : "Salary",
+    "range" : true,
+    "cardinality" : 100,
+    "rangeStart" : 20000,
+    "rangeEnd"   : 500000
+  }
+  ,
+  {
     "column" : "Url",
     "range" : false,
     "cardinality" : 100000,
@@ -15,10 +23,17 @@
     "maxLength" : 256
   },
   {
-    "column" : "Title",
+    "column" : "Position",
     "range" : false,
-    "cardinality" : 100000,
+    "cardinality" : 10000,
     "minLength" : 64,
+    "maxLength" : 256
+  },
+  {
+    "column" : "Location",
+    "range" : false,
+    "cardinality" : 5000,
+    "minLength" : 32,
     "maxLength" : 256
   },
   {
@@ -29,11 +44,11 @@
     "maxLength" : 512
   },
   {
-    "column" : "Author",
+    "column" : "Skills",
     "range" : false,
-    "cardinality" : 20000,
-    "minLength" : 16,
-    "maxLength" : 32
+    "cardinality" : 1000,
+    "minLength" : 256,
+    "maxLength" : 512
   },
   {
     "column" : "Company",
@@ -41,15 +56,6 @@
     "cardinality" : 5000,
     "minLength" : 16,
     "maxLength" : 32
-  },
-  {
-    "column" : "Topic",
-    "range" : false,
-    "cardinality" : 1000,
-    "minLength" : 32,
-    "maxLength" : 64
   }
 
 ]
-
-

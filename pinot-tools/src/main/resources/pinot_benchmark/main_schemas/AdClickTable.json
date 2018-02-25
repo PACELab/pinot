@@ -1,10 +1,12 @@
 {
-  "tableName": "JobApply",
+  "tableName": "AdClick",
   "tableType": "OFFLINE",
   "segmentsConfig": {
     "segmentPushType": "APPEND",
+    "timeColumnName": "ClickTime",
+    "timeType": "SECONDS",
     "segmentAssignmentStrategy": "BalanceNumSegmentAssignmentStrategy",
-    "schemaName": "JobApplySchema",
+    "schemaName": "AdClickSchema",
     "replication": "1"
   },
   "tenants": {

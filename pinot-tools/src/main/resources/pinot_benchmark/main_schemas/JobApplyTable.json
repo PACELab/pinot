@@ -1,10 +1,12 @@
 {
-  "tableName": "ArticleRead",
+  "tableName": "JobApply",
   "tableType": "OFFLINE",
   "segmentsConfig": {
     "segmentPushType": "APPEND",
+    "timeColumnName": "ApplyStartTime",
+    "timeType": "SECONDS",
     "segmentAssignmentStrategy": "BalanceNumSegmentAssignmentStrategy",
-    "schemaName": "ArticleReadSchema",
+    "schemaName": "JobApplySchema",
     "replication": "1"
   },
   "tenants": {

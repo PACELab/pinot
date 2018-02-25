@@ -3,6 +3,8 @@
   "tableType": "OFFLINE",
   "segmentsConfig": {
     "segmentPushType": "APPEND",
+    "timeColumnName": "ViewStartTime",
+    "timeType": "SECONDS",
     "segmentAssignmentStrategy": "BalanceNumSegmentAssignmentStrategy",
     "schemaName": "ProfileViewSchema",
     "replication": "1"
