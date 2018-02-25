@@ -17,6 +17,7 @@ package com.linkedin.pinot.tools.pacelab.benchmark;
 
 import com.linkedin.pinot.tools.admin.command.PostQueryCommand;
 
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,6 +34,7 @@ public abstract class QueryExecutor {
     protected int _testDuration;
     protected String _dataDir;
     List<ExecutorService> _threadPool;
+    private static final String defaultPath = "pinot_benchmark/query_generator_config/";
 
     public static QueryExecutor getInstance(){
         return null;
@@ -71,10 +73,11 @@ public abstract class QueryExecutor {
     }
 
     public void loadConfig() {
-        String configFile = getConfigFile();
+        String configFile = getPathOfConfigFile();
         config = new Properties();
         try {
-            InputStream in = QueryExecutor.class.getClassLoader().getResourceAsStream(configFile);
+            //InputStream in = QueryExecutor.class.getClassLoader().getResourceAsStream(configFile);
+            InputStream in = new FileInputStream(configFile);
             config.load(in);
         } catch (FileNotFoundException e) {
             System.out.println("FileNotFoundException");
@@ -83,6 +86,27 @@ public abstract class QueryExecutor {
             System.out.println("IOException");
             e.printStackTrace();
         }
+    }
+
+    private String getPathOfConfigFile(){
+        String prop = defaultPath+getConfigFile();
+        String config;
+        String propDir = System.getenv("PINOT_HOME");
+        if(propDir==null){
+            //TODO We can load config from class loader also as default config to handle null pointer exception
+            System.out.println("Environment variable is null");
+            return null;
+        }
+        if(propDir.endsWith("/"))
+        {
+            config = propDir + prop;
+        }
+        else
+        {
+            config = propDir + "/" + prop;
+        }
+
+        return config;
     }
 
     public void setPostQueryCommand(PostQueryCommand postQueryCommand) {
