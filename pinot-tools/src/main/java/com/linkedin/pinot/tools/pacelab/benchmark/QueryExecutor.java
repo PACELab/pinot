@@ -65,6 +65,9 @@ public abstract class QueryExecutor {
     public static final String QUERY_CONFIG_PATH = "pinot_benchmark/query_generator_config/";
     public static final String PINOT_TOOLS_RESOURCES = "pinot-tools/src/main/resources/";
     ReentrantLock lock = new ReentrantLock();
+    
+	
+    private Criteria criteria;
 
     public static QueryExecutor getInstance(){
         return null;
@@ -109,9 +112,10 @@ public abstract class QueryExecutor {
 //            threadPool.get(i).shutdown();
 //        }
 //    }
-
+    
     public void start() throws InterruptedException {
         loadConfig();
+        criteria = new Criteria(config);
         List<Double> records = readFromTraces();
 
         int threadCnt = Integer.parseInt(config.getProperty("QPS"));
@@ -273,4 +277,9 @@ public abstract class QueryExecutor {
     public void setSlotDuration(int slotDuration) {
         _slotDuration = slotDuration;
     }
+
+
+	public Criteria getCriteria() {
+		return criteria;
+	}
 }

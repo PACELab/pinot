@@ -27,25 +27,28 @@ import java.util.Random;
 
 public class ProfileViewQueryTask extends QueryTaskDaemon {
     List<GenericRow> _profileTable;
-
-    ZipfRandom _zipfRandom;
+    
+    //ZipfRandom _zipfRandom;
+    
     final static int HourSecond = 3600;
+    
     Random _profileIndexGenerator;
+    
+    
 
-    public ProfileViewQueryTask(Properties config, String[] queries, String dataDir, int testDuration) {
+    public ProfileViewQueryTask(Properties config, String[] queries, String dataDir, int testDuration, Criteria p_criteria) {
         setConfig(config);
         setQueries(queries);
         setDataDir(dataDir);
         setTestDuration(testDuration);
         EventTableGenerator eventTableGenerator = new EventTableGenerator(_dataDir);
+        criteria = p_criteria;
 
-        long minProfileViewStartTime = Long.parseLong(config.getProperty("MinProfileViewStartTime"));
-        long maxProfileViewStartTime = Long.parseLong(config.getProperty("MaxProfileViewStartTime"));
-        double zipfS = Double.parseDouble(config.getProperty("ZipfSParameter"));
-
-        int hourCount = (int) Math.ceil((maxProfileViewStartTime-minProfileViewStartTime)/(HourSecond));
-        _zipfRandom = new ZipfRandom(zipfS,hourCount);
-
+//        long minProfileViewStartTime = Long.parseLong(config.getProperty("MinProfileViewStartTime"));
+//        long maxProfileViewStartTime = Long.parseLong(config.getProperty("MaxProfileViewStartTime"));
+//        double zipfS = Double.parseDouble(config.getProperty("ZipfSParameter"));        
+//        int hourCount = (int) Math.ceil((maxProfileViewStartTime-minProfileViewStartTime)/(HourSecond));
+//        _zipfRandom = new ZipfRandom(zipfS,hourCount);
         _profileIndexGenerator = new Random(System.currentTimeMillis());
 
         try
@@ -68,10 +71,10 @@ public class ProfileViewQueryTask extends QueryTaskDaemon {
         EventTableGenerator eventTableGenerator = new EventTableGenerator(_dataDir);
         Properties config = getConfig();
         String[] queries = getQueries();
-
-
-        long minProfileViewStartTime = Long.parseLong(config.getProperty("MinProfileViewStartTime"));
-        long maxProfileViewStartTime = Long.parseLong(config.getProperty("MaxProfileViewStartTime"));
+        
+     
+        //long minProfileViewStartTime = Long.parseLong(config.getProperty("MinProfileViewStartTime"));
+        //long maxProfileViewStartTime = Long.parseLong(config.getProperty("MaxProfileViewStartTime"));
 
         /*
         double zipfS = Double.parseDouble(config.getProperty("ZipfSParameter"));
@@ -79,22 +82,40 @@ public class ProfileViewQueryTask extends QueryTaskDaemon {
         LongRange timeRange = CommonTools.getZipfRandomHourlyTimeRange(minProfileViewStartTime,maxProfileViewStartTime,zipfS);
         */
 
-        int firstHour = _zipfRandom.nextInt();
+        //int firstHour = _zipfRandom.nextInt();
         //int secondHour = _zipfRandom.nextInt();
 
+//        long queriedEndTime = maxProfileViewStartTime;
+//        long queriedStartTime = Math.max(minProfileViewStartTime,queriedEndTime - firstHour*HourSecond);
+//        LongRange timeRange =  new LongRange(queriedStartTime,queriedEndTime);
         //long queriedEndTime = maxApplyStartTime - firstHour*HourSecond;
-        long queriedEndTime = maxProfileViewStartTime;
-        long queriedStartTime = Math.max(minProfileViewStartTime,queriedEndTime - firstHour*HourSecond);
-
-        LongRange timeRange =  new LongRange(queriedStartTime,queriedEndTime);
+        //long queriedEndTime = maxProfileViewStartTime;
+        //long queriedStartTime = minProfileViewStartTime;
+        
+      
+//        if(Integer.parseInt(queryType))
+//        switch(Integer.parseInt(queryType)) {
+//        case 1:  
+//        			 break;
+//		case 2: queriedEndTime = maxProfileViewStartTime;
+//		 		queriedStartTime = Math.max(minProfileViewStartTime,queriedEndTime - firstHour*HourSecond*24);
+//		 		//queriedEndTime = maxProfileViewStartTime - firstHour*HourSecond*24;
+//		 		//queriedStartTime = queriedEndTime - HourSecond*24;				
+//			break;
+//		case 3: queriedEndTime = maxProfileViewStartTime;
+// 				queriedStartTime = Math.max(minProfileViewStartTime,queriedEndTime - firstHour*HourSecond*24*7);
+//			break;
+//        }
+        
+        //LongRange timeRange =  new LongRange(queriedStartTime,queriedEndTime);
 
         int selectLimit = CommonTools.getSelectLimt(config);
         int groupByLimit = Integer.parseInt(config.getProperty("GroupByLimit"));
-
-
+        
         GenericRow randomProfile = eventTableGenerator.getRandomGenericRow(_profileTable, _profileIndexGenerator);
 
         String query = "";
+        String clause = criteria.getClause("ViewStartTime");
         switch (queryId) {
             /*
             case 0:
@@ -105,28 +126,28 @@ public class ProfileViewQueryTask extends QueryTaskDaemon {
                 query = String.format(queries[queryId], timeRange.getMinimumLong(), timeRange.getMaximumLong(), randomProfile.getValue("ID"), selectLimit);
                 runQuery(query);
                 break;
-                */
-            case 0:
-                query = String.format(queries[queryId], randomProfile.getValue("ID"));
-                runQuery(query);
-                break;
-
-            case 1:
-                query = String.format(queries[queryId], randomProfile.getValue("ID"), groupByLimit);
-                runQuery(query);
-                break;
-            case 2:
-                query = String.format(queries[queryId], randomProfile.getValue("ID"), groupByLimit);
-                runQuery(query);
-                break;
+                */          
+	        case 0:
+	            query = String.format(queries[queryId], randomProfile.getValue("ID"),clause);
+	            runQuery(query);
+	            break;
+	
+	        case 1:
+	            query = String.format(queries[queryId], randomProfile.getValue("ID"), clause, groupByLimit);
+	            runQuery(query);
+	            break;
+	        case 2:
+	            query = String.format(queries[queryId], randomProfile.getValue("ID"), clause, groupByLimit);
+	            runQuery(query);
+	            break;
 	        case 3:
-                query = String.format(queries[queryId], randomProfile.getValue("Position"));
-                runQuery(query);
-                break;
+	            query = String.format(queries[queryId], randomProfile.getValue("Position"), clause);
+	            runQuery(query);
+	            break;
 	        case 4:
-                query = String.format(queries[queryId], randomProfile.getValue("WorkPlace"));
-                runQuery(query);
-                break;
+	            query = String.format(queries[queryId], randomProfile.getValue("WorkPlace"), clause);
+	            runQuery(query);
+	            break;
             /*
 	    case 5:
                 query = String.format(queries[queryId], timeRange.getMinimumLong(), timeRange.getMaximumLong(), groupByLimit);
@@ -146,7 +167,7 @@ public class ProfileViewQueryTask extends QueryTaskDaemon {
                 query = String.format(queries[queryId], timeRange.getMinimumLong(), timeRange.getMaximumLong(), groupByLimit);
                 runQuery(query);
                 break;*/
-        }
+		}
 
-    }
+	}
 }
