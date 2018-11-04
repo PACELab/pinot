@@ -21,50 +21,52 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class QueryTaskDaemon extends QueryTask {
 
-    protected  AtomicBoolean[] thread_status;
-    protected int thread_id;
+	protected  AtomicBoolean[] thread_status;
+	protected int thread_id = -1;
 
-    public void setThread_status(AtomicBoolean[] thread_status) {
-        this.thread_status = thread_status;
-    }
+	public void setThread_status(AtomicBoolean[] thread_status) {
+		this.thread_status = thread_status;
+	}
 
-    @Override
-    public void run() {
+	@Override
+	public void run() {
+		if(thread_id==-1) {
+			super.run();
+			return;
+		}
+		while(!Thread.interrupted())
+		{
+			try {
+				if(thread_status[thread_id].get()) {
+					long timeBeforeSendingQuery = System.currentTimeMillis();
+					//TODO: call queries based
+					//                float randomLikelihood = rand.nextFloat();
+					//                for (int i = 0; i < likelihood.length; i++)
+					//                {
+					//                    if (randomLikelihood <= likelihood[i])
+					//                    {
+					//                        generateAndRunQuery(i);
+					//                        break;
+					//                    }
+					//                }
+					//TODO: Currently Hardcoded , will modify later on.
+					generateAndRunQuery(rand.nextInt(5));
+					long timeAfterSendingQuery = System.currentTimeMillis();
+					long timeDistance = timeAfterSendingQuery - timeBeforeSendingQuery;
+					if (timeDistance < 1000) {
+						Thread.sleep(1000 - timeDistance);
+					}
+				}
+				else
+					Thread.sleep(1000);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 
-//        float[] likelihood = getLikelihoodArrayFromProps();
-        while(!Thread.interrupted())
-        {
-            try {
-            if(thread_status[thread_id].get()) {
-                long timeBeforeSendingQuery = System.currentTimeMillis();
-                //TODO: call queries based
-//                float randomLikelihood = rand.nextFloat();
-//                for (int i = 0; i < likelihood.length; i++)
-//                {
-//                    if (randomLikelihood <= likelihood[i])
-//                    {
-//                        generateAndRunQuery(i);
-//                        break;
-//                    }
-//                }
-                //TODO: Currently Hardcoded , will modify later on.
-                generateAndRunQuery(rand.nextInt(5));
-                long timeAfterSendingQuery = System.currentTimeMillis();
-                long timeDistance = timeAfterSendingQuery - timeBeforeSendingQuery;
-                if (timeDistance < 1000) {
-                    Thread.sleep(1000 - timeDistance);
-                }
-            }
-            else
-                Thread.sleep(1000);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+		}
+	}
 
-        }
-    }
-
-    public void setThread_id(int thread_id) {
-        this.thread_id = thread_id;
-    }
+	public void setThread_id(int thread_id) {
+		this.thread_id = thread_id;
+	}
 }

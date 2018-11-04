@@ -94,6 +94,6 @@ public class ProfileViewQueryExecutor extends QueryExecutor{
     }
 
     public ProfileViewQueryTask getTask(Properties config) {
-        return new ProfileViewQueryTask(config, QUERIES, _dataDir, _testDuration, getCriteria());
+        return new ProfileViewQueryTask(config, QUERIES, _dataDir, _testDuration, getCriteria(Constant.MAX_PROFILE_START_TIME,Constant.MIN_PROFILE_START_TIME));
     }
 }

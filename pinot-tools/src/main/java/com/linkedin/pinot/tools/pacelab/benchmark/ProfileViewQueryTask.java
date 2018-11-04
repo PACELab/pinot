@@ -30,8 +30,6 @@ public class ProfileViewQueryTask extends QueryTaskDaemon {
     
     //ZipfRandom _zipfRandom;
     
-    final static int HourSecond = 3600;
-    
     Random _profileIndexGenerator;
     
     
@@ -110,12 +108,12 @@ public class ProfileViewQueryTask extends QueryTaskDaemon {
         //LongRange timeRange =  new LongRange(queriedStartTime,queriedEndTime);
 
         int selectLimit = CommonTools.getSelectLimt(config);
-        int groupByLimit = Integer.parseInt(config.getProperty("GroupByLimit"));
+        int groupByLimit = Integer.parseInt(config.getProperty(Constant.GROUP_BY_LIMIT));
         
         GenericRow randomProfile = eventTableGenerator.getRandomGenericRow(_profileTable, _profileIndexGenerator);
 
         String query = "";
-        String clause = criteria.getClause("ViewStartTime");
+        String clause = criteria.getClause(Constant.VIEW_START_TIME);
         switch (queryId) {
             /*
             case 0:
