@@ -53,7 +53,7 @@ public class Criteria
 		LongRange timeRange = getTimeRange();
 		if (queryType == 0)
 			return "";
-		return " AND " + column + " > " + timeRange.getMinimumLong() +" AND " + column + " < timeRange.getMaximumLong() ";
+		return " AND " + column + " > " + timeRange.getMinimumLong() +" AND " + column + " < "+timeRange.getMaximumLong();
 
 	}
 }
