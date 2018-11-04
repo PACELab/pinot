@@ -88,15 +88,17 @@ public abstract class QueryExecutor {
 	public void start() throws InterruptedException{
 		loadConfig();
 		if(_recordFile==null || _recordFile.isEmpty()) {
+			System.out.println("Running Normal Code");
 			startQueryLoad();
 		}else {
+			System.out.println("Running Trace file Code");
 			startQueryTraceLoad();
 		}
 	}
 	public void startQueryLoad() throws InterruptedException {
 
 //int threadCnt = Integer.parseInt(config.getProperty("ThreadCount"));
-		int threadCnt = Integer.parseInt(config.getProperty("QPS"));
+		int threadCnt = Integer.parseInt(config.getProperty(Constant.QPS));
 
 		List<ExecutorService> threadPool = new ArrayList<>();
 
@@ -134,7 +136,7 @@ public abstract class QueryExecutor {
 
 		QueryTaskDaemon queryTask;
 
-
+		System.out.println("Size of record file "+records.size());
 		for(int i=0; i < threadCnt; i++)
 		{
 //_threadPool.add(Executors.newFixedThreadPool(1));
@@ -154,11 +156,13 @@ public abstract class QueryExecutor {
 		int currThreadCount = 0;
 
 		boolean status;
+		System.out.println("Started all queries "+System.currentTimeMillis());
 		for(int i=0;i<records.size();i++){
 
-/*
-TODO: modify tread_status array according to the load
-*/
+			/*
+			TODO: modify tread_status array according to the load
+			*/
+			System.out.println("Running iteration "+i+" "+System.currentTimeMillis());
 			currThreadCount =  (int)(records.get(i)*query_Factor);
 			if(prevThreadCount<=currThreadCount) status = true;
 			else status =false;
@@ -168,7 +172,7 @@ TODO: modify tread_status array according to the load
 			prevThreadCount = currThreadCount;
 			Thread.sleep(_slotDuration*1000);
 		}
-
+		System.out.println("Finished all queries "+System.currentTimeMillis());
 		LOGGER.info("Test duration is completed! Ending threads then!");
 		for(int i=0; i<threadCnt;i++)
 		{
