@@ -29,27 +29,27 @@ public class ProfileViewQueryExecutor extends QueryExecutor{
                 "SELECT * FROM ProfileView" +
                     " WHERE ViewStartTime > %d AND ViewStartTime < %d AND ViewedProfileId = '%s' LIMIT %d",*/
 		    "SELECT COUNT(*), AVG(ReviewTime), AVG(ViewerProfileStrength) FROM ProfileView" +     
-		    					" WHERE ViewedProfileId = '%s' "+ 
+		    					" WHERE ViewedProfileId = '%s'"+
 		    					" %s",
 		    					
     					
 			"SELECT ViewerPosition, COUNT(*) FROM ProfileView" +
-							" WHERE ViewedProfileId = '%s' "+
-							" %s "+
+							" WHERE ViewedProfileId = '%s'"+
+							" %s"+
 							" GROUP BY ViewerPosition TOP %d",
 					
 			"SELECT ViewerWorkPlace, COUNT(*) FROM ProfileView" +
-							" WHERE ViewedProfileId = '%s' "+
-							" %s "+
+							" WHERE ViewedProfileId = '%s'"+
+							" %s"+
 							" GROUP BY ViewerWorkPlace TOP %d",
 							
 			"SELECT COUNT(*), AVG(ReviewTime), AVG(ViewerProfileStrength) FROM ProfileView" +
-                        " WHERE ViewedProfilePosition = '%s' "+
-                        " %s ",
+                        " WHERE ViewedProfilePosition = '%s'"+
+                        " %s",
                         
             "SELECT COUNT(*), AVG(ReviewTime), AVG(ViewerProfileStrength) FROM ProfileView " +
-                        " WHERE ViewedProfileWorkPlace = '%s' "+
-                        " %s "
+                        " WHERE ViewedProfileWorkPlace = '%s'"+
+                        " %s"
         /*
 	"SELECT ViewedProfilePosition, COUNT(*), AVG(ReviewTime) FROM ProfileView" +
         //		" WHERE ViewStartTime > %d AND ViewStartTime < %d" +

@@ -18,9 +18,12 @@
 package com.linkedin.pinot.tools.pacelab.benchmark;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class QueryTaskDaemon extends QueryTask {
 
+	private static final Logger LOGGER = LoggerFactory.getLogger(QueryTaskDaemon.class);
 	protected  AtomicBoolean[] thread_status;
 	protected int thread_id = -1;
 
@@ -30,16 +33,22 @@ public class QueryTaskDaemon extends QueryTask {
 
 	@Override
 	public void run() {
+		long runStartMillisTime = System.currentTimeMillis();
 		if(thread_id==-1) {
 			super.run();
 			return;
 		}
-		while(!Thread.interrupted())
+
+		long timeBeforeSendingQuery;
+		long timeAfterSendingQuery;
+		long timeDistance;
+		long currentTimeMillisTime =  System.currentTimeMillis();
+		long secondsPassed = (currentTimeMillisTime-runStartMillisTime)/1000;
+		while(secondsPassed < _testDuration && !Thread.interrupted())
 		{
 			try {
 				if(thread_status[thread_id].get()) {
-					long timeBeforeSendingQuery = System.currentTimeMillis();
-					//TODO: call queries based
+					timeBeforeSendingQuery = System.currentTimeMillis();
 					//                float randomLikelihood = rand.nextFloat();
 					//                for (int i = 0; i < likelihood.length; i++)
 					//                {
@@ -51,16 +60,20 @@ public class QueryTaskDaemon extends QueryTask {
 					//                }
 					//TODO: Currently Hardcoded , will modify later on.
 					generateAndRunQuery(rand.nextInt(5));
-					long timeAfterSendingQuery = System.currentTimeMillis();
-					long timeDistance = timeAfterSendingQuery - timeBeforeSendingQuery;
+					timeAfterSendingQuery = System.currentTimeMillis();
+					timeDistance = timeAfterSendingQuery - timeBeforeSendingQuery;
 					if (timeDistance < 1000) {
 						Thread.sleep(1000 - timeDistance);
 					}
 				}
 				else
 					Thread.sleep(1000);
+
+				currentTimeMillisTime =  System.currentTimeMillis();
+				secondsPassed = (currentTimeMillisTime-runStartMillisTime)/1000;
 			} catch (Exception e) {
-				e.printStackTrace();
+				//e.printStackTrace();
+				LOGGER.error("Exception in thread");
 			}
 
 		}

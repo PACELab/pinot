@@ -20,17 +20,13 @@ import com.linkedin.pinot.tools.admin.command.SegmentCreationCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.validation.constraints.Max;
 import java.io.*;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 class MyProperties extends Properties{
@@ -176,6 +172,7 @@ public abstract class QueryExecutor {
 		LOGGER.info("Test duration is completed! Ending threads then!");
 		for(int i=0; i<threadCnt;i++)
 		{
+			thread_Status[i].set(false);
 			threadPool.get(i).shutdown();
 		}
 	}
