@@ -131,7 +131,7 @@ public abstract class QueryExecutor {
 		List<ExecutorService> threadPool = new ArrayList<>();
 
 		QueryTaskDaemon queryTask;
-
+        _testDuration = records.size()*_slotDuration;
 		System.out.println("Size of record file "+records.size());
 		for(int i=0; i < threadCnt; i++)
 		{
@@ -153,6 +153,7 @@ public abstract class QueryExecutor {
 
 		boolean status;
 		System.out.println("Started all queries "+System.currentTimeMillis());
+		//1 2 2 1 1 1
 		for(int i=0;i<records.size();i++){
 
 			/*
@@ -162,7 +163,7 @@ public abstract class QueryExecutor {
 			currThreadCount =  (int)(records.get(i)*query_Factor);
 			if(prevThreadCount<=currThreadCount) status = true;
 			else status =false;
-			for(int j= Math.min(prevThreadCount,currThreadCount);j<=Math.max(prevThreadCount,currThreadCount);j++){
+			for(int j= Math.min(prevThreadCount,currThreadCount);j<Math.max(prevThreadCount,currThreadCount);j++){
 				thread_Status[j].set(status);
 			}
 			prevThreadCount = currThreadCount;
