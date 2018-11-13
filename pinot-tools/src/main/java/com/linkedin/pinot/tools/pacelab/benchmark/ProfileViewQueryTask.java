@@ -34,13 +34,13 @@ public class ProfileViewQueryTask extends QueryTaskDaemon {
     
     
 
-    public ProfileViewQueryTask(Properties config, String[] queries, String dataDir, int testDuration, Criteria p_criteria) {
+    public ProfileViewQueryTask(Properties config, String[] queries, String dataDir, int testDuration, Criteria pCriteria) {
         setConfig(config);
         setQueries(queries);
         setDataDir(dataDir);
         setTestDuration(testDuration);
         EventTableGenerator eventTableGenerator = new EventTableGenerator(_dataDir);
-        criteria = p_criteria;
+        criteria = pCriteria;
 
 //        long minProfileViewStartTime = Long.parseLong(config.getProperty("MinProfileViewStartTime"));
 //        long maxProfileViewStartTime = Long.parseLong(config.getProperty("MaxProfileViewStartTime"));
