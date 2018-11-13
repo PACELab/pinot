@@ -21,7 +21,7 @@ public class Constant {
 	public static final String GROUP_BY_LIMIT = "GroupByLimit";
 	public static final String VIEW_START_TIME = "ViewStartTime";
 	public static final String ZIPFS_PARAMETER = "ZipfSParameter";
-	public static final String QUERY_TYPE = "queryType";
+	public static final String QUERY_TYPE = "QueryType";
 	public static final String MIN_PROFILE_START_TIME = "MinProfileViewStartTime";
 	public static final String MAX_PROFILE_START_TIME = "MaxProfileViewStartTime";
 	public static final String QPS = "QPS";

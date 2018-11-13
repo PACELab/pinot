@@ -16,7 +16,6 @@
 package com.linkedin.pinot.tools.pacelab.benchmark;
 
 import com.linkedin.pinot.tools.admin.command.PostQueryCommand;
-import com.linkedin.pinot.tools.admin.command.SegmentCreationCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,8 +54,8 @@ public abstract class QueryExecutor {
 	protected String _dataDir;
 	protected String _recordFile;
 	protected int _testDuration;
-	protected int _slotDuration;
-	protected AtomicBoolean[] thread_Status;
+	protected int _slotDuration = 1;
+	protected AtomicBoolean[] threadStatus;
 
 	public static final String QUERY_CONFIG_PATH = "pinot_benchmark/query_generator_config/";
 	public static final String PINOT_TOOLS_RESOURCES = "pinot-tools/src/main/resources/";
@@ -126,7 +125,7 @@ public abstract class QueryExecutor {
 
 		int threadCnt = Integer.parseInt(config.getProperty(Constant.QPS));
 		double query_Factor = threadCnt/100;
-		thread_Status = new AtomicBoolean[threadCnt+1];
+		threadStatus = new AtomicBoolean[threadCnt+1];
 
 		List<ExecutorService> threadPool = new ArrayList<>();
 
@@ -136,15 +135,15 @@ public abstract class QueryExecutor {
 		for(int i=0; i < threadCnt; i++)
 		{
 //_threadPool.add(Executors.newFixedThreadPool(1));
-			thread_Status[i]=new AtomicBoolean(false);
+			threadStatus[i]=new AtomicBoolean(false);
 			threadPool.add(Executors.newSingleThreadScheduledExecutor());
 		}
 		for(int i=0; i < threadCnt; i++)
 		{
 			queryTask = (QueryTaskDaemon) getTask(config);
 			queryTask.setPostQueryCommand(this.postQueryCommand);
-			queryTask.setThread_status(thread_Status);
-			queryTask.setThread_id(i);
+			queryTask.setThreadStatus(threadStatus);
+			queryTask.setThreadId(i);
 //System.out.println("INside thread");
 			threadPool.get(i).execute(queryTask);
 		}
@@ -152,8 +151,7 @@ public abstract class QueryExecutor {
 		int currThreadCount = 0;
 
 		boolean status;
-		System.out.println("Started all queries "+System.currentTimeMillis());
-		//1 2 2 1 1 1
+
 		for(int i=0;i<records.size();i++){
 
 			/*
@@ -164,16 +162,17 @@ public abstract class QueryExecutor {
 			if(prevThreadCount<=currThreadCount) status = true;
 			else status =false;
 			for(int j= Math.min(prevThreadCount,currThreadCount);j<Math.max(prevThreadCount,currThreadCount);j++){
-				thread_Status[j].set(status);
+				threadStatus[j].set(status);
 			}
 			prevThreadCount = currThreadCount;
 			Thread.sleep(_slotDuration*1000);
 		}
+        System.out.println("Started all queries "+System.currentTimeMillis());
 		System.out.println("Finished all queries "+System.currentTimeMillis());
 		LOGGER.info("Test duration is completed! Ending threads then!");
 		for(int i=0; i<threadCnt;i++)
 		{
-			thread_Status[i].set(false);
+			threadStatus[i].set(false);
 			threadPool.get(i).shutdown();
 		}
 	}

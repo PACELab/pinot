@@ -24,17 +24,16 @@ import org.slf4j.LoggerFactory;
 public class QueryTaskDaemon extends QueryTask {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(QueryTaskDaemon.class);
-	protected  AtomicBoolean[] thread_status;
-	protected int thread_id = -1;
+	protected  AtomicBoolean[] threadStatus;
+	protected int threadId = -1;
 
-	public void setThread_status(AtomicBoolean[] thread_status) {
-		this.thread_status = thread_status;
+	public void setThreadStatus(AtomicBoolean[] threadStatus) {
+		this.threadStatus = threadStatus;
 	}
 
 	@Override
 	public void run() {
-		long runStartMillisTime = System.currentTimeMillis();
-		if(thread_id==-1) {
+		if(threadId ==-1) {
 			super.run();
 			return;
 		}
@@ -42,22 +41,14 @@ public class QueryTaskDaemon extends QueryTask {
 		long timeBeforeSendingQuery;
 		long timeAfterSendingQuery;
 		long timeDistance;
+		long runStartMillisTime = System.currentTimeMillis();
 		long currentTimeMillisTime =  System.currentTimeMillis();
 		long secondsPassed = (currentTimeMillisTime-runStartMillisTime)/1000;
 		while(secondsPassed < _testDuration && !Thread.interrupted())
 		{
 			try {
-				if(thread_status[thread_id].get()) {
+				if(threadStatus[threadId].get()) {
 					timeBeforeSendingQuery = System.currentTimeMillis();
-					//                float randomLikelihood = rand.nextFloat();
-					//                for (int i = 0; i < likelihood.length; i++)
-					//                {
-					//                    if (randomLikelihood <= likelihood[i])
-					//                    {
-					//                        generateAndRunQuery(i);
-					//                        break;
-					//                    }
-					//                }
 					//TODO: Currently Hardcoded , will modify later on.
 					generateAndRunQuery(rand.nextInt(5));
 					timeAfterSendingQuery = System.currentTimeMillis();
@@ -67,19 +58,18 @@ public class QueryTaskDaemon extends QueryTask {
 					}
 				}
 				else
-					Thread.sleep(1000);
+					Thread.sleep(500);
 
 				currentTimeMillisTime =  System.currentTimeMillis();
 				secondsPassed = (currentTimeMillisTime-runStartMillisTime)/1000;
 			} catch (Exception e) {
-				//e.printStackTrace();
 				LOGGER.error("Exception in thread");
 			}
 
 		}
 	}
 
-	public void setThread_id(int thread_id) {
-		this.thread_id = thread_id;
+	public void setThreadId(int threadId) {
+		this.threadId = threadId;
 	}
 }

@@ -112,8 +112,11 @@ public class ProfileViewQueryTask extends QueryTaskDaemon {
         
         GenericRow randomProfile = eventTableGenerator.getRandomGenericRow(_profileTable, _profileIndexGenerator);
 
-        String query = "";
+        String query;
         String clause = criteria.getClause(Constant.VIEW_START_TIME);
+        if(!clause.equals("")){
+            clause = " AND " +clause;
+        }
         switch (queryId) {
             /*
             case 0:

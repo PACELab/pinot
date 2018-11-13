@@ -22,68 +22,41 @@ import org.xerial.util.ZipfRandom;
 
 public class Criteria
 {
-	private Long maxApplyStartTime;
-	private Long minApplyStartTime;
+	private Long maxStartTime;
+	private Long minStartTime;
 	private int queryType;
 	private int secsInDuration;
 	private ZipfRandom zipfRandom;
 
-	public Criteria(Properties config, String maxStartTime, String minStartTime) {
-		minApplyStartTime = Long.parseLong(config.getProperty(minStartTime));
-		maxApplyStartTime = Long.parseLong(config.getProperty(maxStartTime));
+	public Criteria(Properties config, String pMaxStartTime, String pMinStartTime) {
+		minStartTime = Long.parseLong(config.getProperty(pMinStartTime));
+		maxStartTime = Long.parseLong(config.getProperty(pMaxStartTime));
 		queryType = Integer.parseInt(config.getProperty(Constant.QUERY_TYPE));
-		secsInDuration = Constant.HOURSECOND;
 		switch(queryType) {
-			case 2 : secsInDuration *= 7;
-			case 1 : secsInDuration *= 24;
+			case 1 : secsInDuration = Constant.HOURSECOND * 24;
+					break;
+			case 2 : secsInDuration = Constant.HOURSECOND * 7 * 24;
+					break;
+			default : secsInDuration = Constant.HOURSECOND;
+					break;
+
 		}
 		double zipfS = Double.parseDouble(config.getProperty(Constant.ZIPFS_PARAMETER));
-		int count = (int) Math.ceil((maxApplyStartTime-minApplyStartTime)/(secsInDuration));
+		int count = (int) Math.ceil((maxStartTime-minStartTime)/(secsInDuration));
 		zipfRandom = new ZipfRandom(zipfS,count);
 	}
 
 	private LongRange getTimeRange() {
 		int duration = zipfRandom.nextInt();
-		long queriedEndTime = maxApplyStartTime;
-		long queriedStartTime = Math.max(minApplyStartTime,queriedEndTime - duration*secsInDuration);
-		LongRange timeRange =  new LongRange(queriedStartTime,queriedEndTime);
-		return timeRange;
+		long queriedEndTime = maxStartTime;
+		long queriedStartTime = Math.max(minStartTime,queriedEndTime - duration*secsInDuration);
+		return new LongRange(queriedStartTime,queriedEndTime);
 	}
 	public String getClause(String column) {
 		LongRange timeRange = getTimeRange();
 		if (queryType == 0)
 			return "";
-		return " AND " + column + " > " + timeRange.getMinimumLong() +" AND " + column + " < "+timeRange.getMaximumLong();
+		return column + " > " + timeRange.getMinimumLong() +" AND " + column + " < "+timeRange.getMaximumLong();
 
 	}
 }
-
-
-//public abstract class Criteria {
-//	
-//	abstract protected Long maxApplyStartTime();
-//	abstract protected Long minApplyStartTime();
-//	abstract protected int queryType();
-//	abstract protected int durationSecs();
-//	abstract protected ZipfRandom zipfRandom();
-//	
-//	protected String param() {
-//		return null;
-//	}
-//		
-//	LongRange getTimeRange() {
-//		long queriedEndTime = maxApplyStartTime() - zipfRandom().nextInt()*durationSecs();
-//        long queriedStartTime = minApplyStartTime();
-//		LongRange timeRange =  new LongRange(queriedStartTime,queriedEndTime);
-//		return timeRange;
-//	}
-//	String getClause() {
-//		LongRange timeRange = getTimeRange();
-//		if (queryType() == 0)
-//			return "";
-//		return " AND " + param() + " > " + timeRange.getMinimumLong() +" AND " + timeRange.getMaximumLong() + " < %d ";
-//
-//	}
-//	
-//
-//}

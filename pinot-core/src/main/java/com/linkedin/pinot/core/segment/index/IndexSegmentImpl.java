@@ -63,7 +63,6 @@ public class IndexSegmentImpl implements IndexSegment {
 
   public synchronized void incrementSegmentHitCount(){
       segmentHitCount++;
-      System.out.println("Segment: "+segmentMetadata.getName()+" count changed to "+segmentHitCount);
   }
 
   // Synchronized avoided as everyone would be resetting to 0.
