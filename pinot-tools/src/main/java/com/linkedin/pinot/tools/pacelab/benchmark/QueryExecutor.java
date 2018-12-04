@@ -18,14 +18,13 @@ package com.linkedin.pinot.tools.pacelab.benchmark;
 import com.linkedin.pinot.tools.admin.command.PostQueryCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import scala.collection.immutable.Stream;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
 class MyProperties extends Properties{
@@ -55,14 +54,20 @@ public abstract class QueryExecutor {
 	protected String _recordFile;
 	protected int _testDuration;
 	protected int _slotDuration = 1;
-	protected AtomicBoolean[] threadStatus;
+	protected AtomicInteger[] threadQueryType;
 
 	public static final String QUERY_CONFIG_PATH = "pinot_benchmark/query_generator_config/";
 	public static final String PINOT_TOOLS_RESOURCES = "pinot-tools/src/main/resources/";
+	protected final String CPU_LOAD_MAP_FILE = "cpu_load_map_file.csv";
 	ReentrantLock lock = new ReentrantLock();
+	private int threadCnt;
 
 
 	private Criteria criteria;
+
+
+	protected int _useCPUMap;
+	protected Map<Integer,List<Integer>> mapCPULoadToThreadCounts;
 
 	public static QueryExecutor getInstance(){
 		return null;
@@ -82,6 +87,7 @@ public abstract class QueryExecutor {
 
 	public void start() throws InterruptedException{
 		loadConfig();
+
 		if(_recordFile==null || _recordFile.isEmpty()) {
 			System.out.println("Running Normal Code");
 			startQueryLoad();
@@ -93,7 +99,7 @@ public abstract class QueryExecutor {
 	public void startQueryLoad() throws InterruptedException {
 
 //int threadCnt = Integer.parseInt(config.getProperty("ThreadCount"));
-		int threadCnt = Integer.parseInt(config.getProperty(Constant.QPS));
+		threadCnt = Integer.parseInt(config.getProperty(Constant.QPS));
 
 		List<ExecutorService> threadPool = new ArrayList<>();
 
@@ -121,64 +127,105 @@ public abstract class QueryExecutor {
 
 
 	public void startQueryTraceLoad() throws InterruptedException {
-		List<Double> records = readFromTraces();
+		List<Integer> records = readFromTraces();
+		_testDuration = records.size()*_slotDuration;
+
+		if(_useCPUMap != 0)
+			loadCPUMap();
 
 		int threadCnt = Integer.parseInt(config.getProperty(Constant.QPS));
-		double query_Factor = threadCnt/100;
-		threadStatus = new AtomicBoolean[threadCnt+1];
-
+		threadQueryType = new AtomicInteger[threadCnt+1];
 		List<ExecutorService> threadPool = new ArrayList<>();
 
-		QueryTaskDaemon queryTask;
-        _testDuration = records.size()*_slotDuration;
 		System.out.println("Size of record file "+records.size());
-		for(int i=0; i < threadCnt; i++)
-		{
-//_threadPool.add(Executors.newFixedThreadPool(1));
-			threadStatus[i]=new AtomicBoolean(false);
+		for(int i=0; i < threadCnt; i++) {
+			threadQueryType[i]=new AtomicInteger(Constant.STOP);
 			threadPool.add(Executors.newSingleThreadScheduledExecutor());
 		}
-		for(int i=0; i < threadCnt; i++)
-		{
+		QueryTaskDaemon queryTask;
+		for(int i=0; i < threadCnt; i++) {
 			queryTask = (QueryTaskDaemon) getTask(config);
 			queryTask.setPostQueryCommand(this.postQueryCommand);
-			queryTask.setThreadStatus(threadStatus);
+			queryTask.setThreadQueryType(threadQueryType);
 			queryTask.setThreadId(i);
-//System.out.println("INside thread");
 			threadPool.get(i).execute(queryTask);
 		}
+
+		if(_useCPUMap != 0)
+			executeBasedOnMap(records);
+		else
+			executeBasedOnQueryFactor(records,threadCnt/100, Integer.parseInt(config.getProperty(Constant.QUERY_TYPE)));
+
+		LOGGER.info("Test duration is completed! Ending threads then!");
+		for(int i=0; i<threadCnt;i++) {
+			threadQueryType[i].set(Constant.STOP);
+			threadPool.get(i).shutdown();
+		}
+	}
+	private void executeBasedOnQueryFactor(List<Integer> records, double queryFactor, int queryType) throws java.lang.InterruptedException{
 		int prevThreadCount = 0;
-		int currThreadCount = 0;
-
-		boolean status;
-
+		int currThreadCount;
 		for(int i=0;i<records.size();i++){
-
-			/*
-			TODO: modify tread_status array according to the load
-			*/
-			System.out.println("Running iteration "+i+" "+System.currentTimeMillis());
-			currThreadCount =  (int)(records.get(i)*query_Factor);
-			if(prevThreadCount<=currThreadCount) status = true;
-			else status =false;
+			currThreadCount =  (int)(records.get(i) * queryFactor);
+			if(prevThreadCount > currThreadCount)
+				queryType = Constant.STOP;
 			for(int j= Math.min(prevThreadCount,currThreadCount);j<Math.max(prevThreadCount,currThreadCount);j++){
-				threadStatus[j].set(status);
+				threadQueryType[j].set(queryType);
 			}
 			prevThreadCount = currThreadCount;
 			Thread.sleep(_slotDuration*1000);
 		}
-        System.out.println("Started all queries "+System.currentTimeMillis());
-		System.out.println("Finished all queries "+System.currentTimeMillis());
-		LOGGER.info("Test duration is completed! Ending threads then!");
-		for(int i=0; i<threadCnt;i++)
-		{
-			threadStatus[i].set(false);
-			threadPool.get(i).shutdown();
+	}
+
+	private void executeBasedOnMap(List<Integer> records) throws java.lang.InterruptedException{
+		List<Integer> threadCounts;
+		for(int i=0;i<records.size();i++){
+			threadCounts =  mapCPULoadToThreadCounts.get(records.get(i));
+			int queryType=0;
+			int curr=0;
+			for(int count: threadCounts){
+					while(count>0 && curr <threadCnt){
+						threadQueryType[curr++].set(queryType);
+						count--;
+					}
+					queryType++;
+			}
+			while(curr < threadCnt) {
+					threadQueryType[curr++].set(Constant.STOP);
+			}
+			Thread.sleep(_slotDuration*1000);
+		}
+
+	}
+	private void loadCPUMap(){
+		mapCPULoadToThreadCounts = new HashMap<>();
+	 	FileReader fileReader = null;
+	 	BufferedReader bufferedReader = null;
+	 	String line;
+		List<Integer> record;
+	 	try {
+	 		File file = new File(getFullPath(PINOT_TOOLS_RESOURCES + CPU_LOAD_MAP_FILE));
+			fileReader = new FileReader(file);
+			bufferedReader = new BufferedReader(fileReader);
+			while ((line = bufferedReader.readLine()) != null) {
+				String[] values = line.split(",");
+				if(values.length > 0){
+					record = new ArrayList<>();
+					 for(int i =1; i<values.length; i++)
+						 record.add(Integer.parseInt(values[i]));
+					 mapCPULoadToThreadCounts.put(Integer.parseInt(values[0]),record);
+				}
+			}
+		} catch (IOException e) {
+			 e.printStackTrace();
+		}finally {
+			 closeStream(fileReader,bufferedReader);
 		}
 	}
+
 	//Will contain only one column
-	private List<Double> readFromTraces(){
-		List<Double> recordsList = new ArrayList<>();
+	private List<Integer> readFromTraces(){
+		List<Integer> recordsList = new ArrayList<>();
 		FileReader fileReader = null;
 		BufferedReader bufferedReader = null;
 		String line;
@@ -187,7 +234,7 @@ public abstract class QueryExecutor {
 			fileReader = new FileReader(file);
 			bufferedReader = new BufferedReader(fileReader);
 			while ((line = bufferedReader.readLine()) != null) {
-				recordsList.add(Double.parseDouble(line));
+				recordsList.add((int)Double.parseDouble(line));
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -208,7 +255,7 @@ public abstract class QueryExecutor {
 	}
 
 	public void loadConfig() {
-		String configFile = getPathOfConfigFile();
+		String configFile = getFullPath(PINOT_TOOLS_RESOURCES+QUERY_CONFIG_PATH+getConfigFile());
 		if(config==null){
 			config = new MyProperties(lock);
 		}
@@ -230,9 +277,7 @@ public abstract class QueryExecutor {
 		}
 	}
 
-	public String getPathOfConfigFile(){
-		String prop = PINOT_TOOLS_RESOURCES+QUERY_CONFIG_PATH+getConfigFile();
-//String prop = getConfigFile();
+	private String getFullPath(String filePath){
 		String config;
 		String propDir = System.getenv("PINOT_HOME");
 		if(propDir==null){
@@ -242,11 +287,11 @@ public abstract class QueryExecutor {
 		}
 		if(propDir.endsWith("/"))
 		{
-			config = propDir + prop;
+			config = propDir + filePath;
 		}
 		else
 		{
-			config = propDir + "/" + prop;
+			config = propDir + "/" + filePath;
 		}
 
 		return config;
@@ -280,6 +325,9 @@ public abstract class QueryExecutor {
 		_slotDuration = slotDuration;
 	}
 
+	public void setUseCPUMap(int _useCPUMap) {
+		this._useCPUMap = _useCPUMap;
+	}
 
 	public Criteria getCriteria(String maxStartTime, String minStartTime) {
 		if(criteria==null) {

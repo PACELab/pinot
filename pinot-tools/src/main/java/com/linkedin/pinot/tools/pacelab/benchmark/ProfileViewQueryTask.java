@@ -64,48 +64,14 @@ public class ProfileViewQueryTask extends QueryTaskDaemon {
         super.run();
     }
 
-
     public void generateAndRunQuery(int queryId) throws Exception {
+        generateAndRunQuery(queryId,0);
+    }
+
+    public void generateAndRunQuery(int queryId, int queryType) throws Exception {
         EventTableGenerator eventTableGenerator = new EventTableGenerator(_dataDir);
         Properties config = getConfig();
         String[] queries = getQueries();
-        
-     
-        //long minProfileViewStartTime = Long.parseLong(config.getProperty("MinProfileViewStartTime"));
-        //long maxProfileViewStartTime = Long.parseLong(config.getProperty("MaxProfileViewStartTime"));
-
-        /*
-        double zipfS = Double.parseDouble(config.getProperty("ZipfSParameter"));
-        //LongRange timeRange = CommonTools.getZipfRandomDailyTimeRange(minProfileViewStartTime,maxProfileViewStartTime,zipfS);
-        LongRange timeRange = CommonTools.getZipfRandomHourlyTimeRange(minProfileViewStartTime,maxProfileViewStartTime,zipfS);
-        */
-
-        //int firstHour = _zipfRandom.nextInt();
-        //int secondHour = _zipfRandom.nextInt();
-
-//        long queriedEndTime = maxProfileViewStartTime;
-//        long queriedStartTime = Math.max(minProfileViewStartTime,queriedEndTime - firstHour*HourSecond);
-//        LongRange timeRange =  new LongRange(queriedStartTime,queriedEndTime);
-        //long queriedEndTime = maxApplyStartTime - firstHour*HourSecond;
-        //long queriedEndTime = maxProfileViewStartTime;
-        //long queriedStartTime = minProfileViewStartTime;
-        
-      
-//        if(Integer.parseInt(queryType))
-//        switch(Integer.parseInt(queryType)) {
-//        case 1:  
-//        			 break;
-//		case 2: queriedEndTime = maxProfileViewStartTime;
-//		 		queriedStartTime = Math.max(minProfileViewStartTime,queriedEndTime - firstHour*HourSecond*24);
-//		 		//queriedEndTime = maxProfileViewStartTime - firstHour*HourSecond*24;
-//		 		//queriedStartTime = queriedEndTime - HourSecond*24;				
-//			break;
-//		case 3: queriedEndTime = maxProfileViewStartTime;
-// 				queriedStartTime = Math.max(minProfileViewStartTime,queriedEndTime - firstHour*HourSecond*24*7);
-//			break;
-//        }
-        
-        //LongRange timeRange =  new LongRange(queriedStartTime,queriedEndTime);
 
         int selectLimit = CommonTools.getSelectLimt(config);
         int groupByLimit = Integer.parseInt(config.getProperty(Constant.GROUP_BY_LIMIT));
@@ -113,21 +79,11 @@ public class ProfileViewQueryTask extends QueryTaskDaemon {
         GenericRow randomProfile = eventTableGenerator.getRandomGenericRow(_profileTable, _profileIndexGenerator);
 
         String query;
-        String clause = criteria.getClause(Constant.VIEW_START_TIME);
+        String clause = criteria.getClause(Constant.VIEW_START_TIME, queryType);
         if(!clause.equals("")){
             clause = " AND " +clause;
         }
         switch (queryId) {
-            /*
-            case 0:
-                query = String.format(queries[queryId], timeRange.getMinimumLong(), timeRange.getMaximumLong());
-                runQuery(query);
-                break;
-            case 1:
-                query = String.format(queries[queryId], timeRange.getMinimumLong(), timeRange.getMaximumLong(), randomProfile.getValue("ID"), selectLimit);
-                runQuery(query);
-                break;
-                */          
 	        case 0:
 	            query = String.format(queries[queryId], randomProfile.getValue("ID"),clause);
 	            runQuery(query);
@@ -149,25 +105,6 @@ public class ProfileViewQueryTask extends QueryTaskDaemon {
 	            query = String.format(queries[queryId], randomProfile.getValue("WorkPlace"), clause);
 	            runQuery(query);
 	            break;
-            /*
-	    case 5:
-                query = String.format(queries[queryId], timeRange.getMinimumLong(), timeRange.getMaximumLong(), groupByLimit);
-                runQuery(query);
-                break;
-            case 6:
-                query = String.format(queries[queryId], timeRange.getMinimumLong(), timeRange.getMaximumLong(), groupByLimit);
-                runQuery(query);
-                break;
-	    */	
-		/*
-            case 4:
-                query = String.format(queries[queryId], timeRange.getMinimumLong(), timeRange.getMaximumLong(), groupByLimit);
-                runQuery(query);
-                break;
-            case 5:
-                query = String.format(queries[queryId], timeRange.getMinimumLong(), timeRange.getMaximumLong(), groupByLimit);
-                runQuery(query);
-                break;*/
 		}
 
 	}

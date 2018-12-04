@@ -17,18 +17,19 @@
 
 package com.linkedin.pinot.tools.pacelab.benchmark;
 
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class QueryTaskDaemon extends QueryTask {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(QueryTaskDaemon.class);
-	protected  AtomicBoolean[] threadStatus;
+	protected  AtomicInteger[] threadQueryType;
 	protected int threadId = -1;
 
-	public void setThreadStatus(AtomicBoolean[] threadStatus) {
-		this.threadStatus = threadStatus;
+	public void setThreadQueryType(AtomicInteger[] threadQueryType) {
+		this.threadQueryType = threadQueryType;
 	}
 
 	@Override
@@ -44,13 +45,14 @@ public class QueryTaskDaemon extends QueryTask {
 		long runStartMillisTime = System.currentTimeMillis();
 		long currentTimeMillisTime =  System.currentTimeMillis();
 		long secondsPassed = (currentTimeMillisTime-runStartMillisTime)/1000;
+		int queryType;
 		while(secondsPassed < _testDuration && !Thread.interrupted())
 		{
 			try {
-				if(threadStatus[threadId].get()) {
+				queryType = threadQueryType[threadId].get();
+				if( queryType != Constant.STOP) {
 					timeBeforeSendingQuery = System.currentTimeMillis();
-					//TODO: Currently Hardcoded , will modify later on.
-					generateAndRunQuery(rand.nextInt(5));
+					generateAndRunQuery(rand.nextInt(Constant.QUERY_COUNT),queryType);
 					timeAfterSendingQuery = System.currentTimeMillis();
 					timeDistance = timeAfterSendingQuery - timeBeforeSendingQuery;
 					if (timeDistance < 1000) {
@@ -58,7 +60,7 @@ public class QueryTaskDaemon extends QueryTask {
 					}
 				}
 				else
-					Thread.sleep(500);
+					Thread.sleep(100);
 
 				currentTimeMillisTime =  System.currentTimeMillis();
 				secondsPassed = (currentTimeMillisTime-runStartMillisTime)/1000;
@@ -67,6 +69,9 @@ public class QueryTaskDaemon extends QueryTask {
 			}
 
 		}
+	}
+	public void generateAndRunQuery(int queryId, int queryType) throws Exception {
+
 	}
 
 	public void setThreadId(int threadId) {

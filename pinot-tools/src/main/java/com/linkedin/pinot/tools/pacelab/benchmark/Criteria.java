@@ -24,39 +24,32 @@ public class Criteria
 {
 	private Long maxStartTime;
 	private Long minStartTime;
-	private int queryType;
-	private int secsInDuration;
-	private ZipfRandom zipfRandom;
+	private ZipfRandom[] zipfRandom;
 
 	public Criteria(Properties config, String pMaxStartTime, String pMinStartTime) {
 		minStartTime = Long.parseLong(config.getProperty(pMinStartTime));
 		maxStartTime = Long.parseLong(config.getProperty(pMaxStartTime));
-		queryType = Integer.parseInt(config.getProperty(Constant.QUERY_TYPE));
-		switch(queryType) {
-			case 1 : secsInDuration = Constant.HOURSECOND * 24;
-					break;
-			case 2 : secsInDuration = Constant.HOURSECOND * 7 * 24;
-					break;
-			default : secsInDuration = Constant.HOURSECOND;
-					break;
-
-		}
+		zipfRandom = new ZipfRandom[Constant.QUERY_TYPE_COUNT];
 		double zipfS = Double.parseDouble(config.getProperty(Constant.ZIPFS_PARAMETER));
-		int count = (int) Math.ceil((maxStartTime-minStartTime)/(secsInDuration));
-		zipfRandom = new ZipfRandom(zipfS,count);
+		int count;
+		for(int queryType =1; queryType < Constant.QUERY_TYPE_COUNT ; queryType++) {
+			count = (int) Math.ceil((maxStartTime-minStartTime)/(Constant.SECS_IN_DURATION[queryType]));
+			zipfRandom[queryType] = new ZipfRandom(zipfS,count);
+		}
 	}
 
-	private LongRange getTimeRange() {
-		int duration = zipfRandom.nextInt();
-		long queriedEndTime = maxStartTime;
-		long queriedStartTime = Math.max(minStartTime,queriedEndTime - duration*secsInDuration);
-		return new LongRange(queriedStartTime,queriedEndTime);
+	public String getClause(String column,int pQueryType) {
+		 if (pQueryType == 0)
+			 return "";
+		 LongRange timeRange = getTimeRange(pQueryType);
+		 return column + " > " + timeRange.getMinimumLong() +" AND " + column + " < "+timeRange.getMaximumLong();
 	}
-	public String getClause(String column) {
-		LongRange timeRange = getTimeRange();
-		if (queryType == 0)
-			return "";
-		return column + " > " + timeRange.getMinimumLong() +" AND " + column + " < "+timeRange.getMaximumLong();
 
+	private LongRange getTimeRange(int pQueryType) {
+		 int duration = zipfRandom[pQueryType].nextInt();
+		 long queriedEndTime = maxStartTime;
+		 long queriedStartTime = Math.max(minStartTime,queriedEndTime - duration * Constant.SECS_IN_DURATION[pQueryType]);
+		 return new LongRange(queriedStartTime,queriedEndTime);
 	}
+
 }

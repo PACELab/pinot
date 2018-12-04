@@ -25,9 +25,10 @@ public class Constant {
 	public static final String MIN_PROFILE_START_TIME = "MinProfileViewStartTime";
 	public static final String MAX_PROFILE_START_TIME = "MaxProfileViewStartTime";
 	public static final String QPS = "QPS";
-	
-	
-	
+	public static final int STOP = -1;
+	public static final int QUERY_COUNT = 5;
+	public static final int QUERY_TYPE_COUNT = 4;
 	public static final int HOURSECOND = 3600;
+	public static final int[] SECS_IN_DURATION = {0, HOURSECOND, HOURSECOND*24, HOURSECOND*24*7};
 
 }
