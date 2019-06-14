@@ -108,12 +108,16 @@ public class ServerPerfResource {
       String tableName = tableLoadModel[0];
       double lifeTimeInDay = Double.parseDouble(tableLoadModel[1]);
       double timeScale =  Double.parseDouble(tableLoadModel[2]);
-      double C1 = Double.parseDouble(tableLoadModel[3]);
-      double Beta1 = Double.parseDouble(tableLoadModel[4]);
-      double C2 = Double.parseDouble(tableLoadModel[5]);
-      double Beta2 = Double.parseDouble(tableLoadModel[6]);
+      double C0 = Double.parseDouble(tableLoadModel[3]);
+      double Beta0 = Double.parseDouble(tableLoadModel[4]);
+      double C1 = Double.parseDouble(tableLoadModel[5]);
+      double Beta1 = Double.parseDouble(tableLoadModel[6]);
+      double C2 = Double.parseDouble(tableLoadModel[7]);
+      double Beta2 = Double.parseDouble(tableLoadModel[8]);
+      double C3 = Double.parseDouble(tableLoadModel[9]);
+      double Beta3 = Double.parseDouble(tableLoadModel[10]);
 
-      tableCPULoadFormulation.put(tableName, new EASYLoadFormulation(lifeTimeInDay,timeScale,C1,Beta1,C2,Beta2));
+      tableCPULoadFormulation.put(tableName, new EASYLoadFormulation(lifeTimeInDay,timeScale,C0,Beta0,C1,Beta1,C2,Beta2,C3,Beta3));
     }
 
 
@@ -145,7 +149,9 @@ public class ServerPerfResource {
             LOGGER.debug("Table {} does not have an entry in {}", tableName, TableCPULoadConfigFilePath);
             continue;
           }
-          double segmentLoad = tableCPULoadFormulation.get(tableName).computeCPULoad(segment.getSegmentMetadata(),1519948890);
+          //EASY Paper: 1519948890
+
+          double segmentLoad = tableCPULoadFormulation.get(tableName).computeCPULoad(segment.getSegmentMetadata(),1556668800);
           serverPerfMetrics.segmentCPULoad += segmentLoad;
           LOGGER.info("SegmentLoadIsComputed: Time:{}, TableName:{}, SegmentName{}, SegmentLoad:{}", System.currentTimeMillis(), tableDataManager.getTableName(), segment.getSegmentMetadata().getName(), segmentLoad);
 
@@ -195,19 +201,27 @@ public class ServerPerfResource {
   {
     private double _lifeTimeInDay=0;
     private double _timeScale=0;
+    private  double _C0=0;
+    private  double _Beta0=0;
     private  double _C1=0;
     private  double _Beta1=0;
     private  double _C2=0;
     private  double _Beta2=0;
+    private  double _C3=0;
+    private  double _Beta3=0;
 
-    public EASYLoadFormulation(double lifeTimeInDay, double timeScale, double C1, double Beta1, double C2, double Beta2)
+    public EASYLoadFormulation(double lifeTimeInDay, double timeScale, double C0, double Beta0, double C1, double Beta1, double C2, double Beta2, double C3, double Beta3)
     {
       _lifeTimeInDay = lifeTimeInDay;
       _timeScale = timeScale;
+      _C0 = C0;
+      _Beta0 = Beta0;
       _C1 = C1;
       _Beta1 = Beta1;
       _C2 = C2;
       _Beta2 = Beta2;
+      _C3 = C3;
+      _Beta3 = Beta3;
     }
 
     public double computeCPULoad(SegmentMetadata segmentMetadata, long maxTime) {
@@ -222,10 +236,12 @@ public class ServerPerfResource {
       if(segmentAgeInScaleSeconds > lifeTimeInScaleSeconds) {
         return 0;
       }
-
+      double t0= _C0 * ( Math.pow(lifeTimeInScaleSeconds,_Beta0) - Math.pow(segmentAgeInScaleSeconds,_Beta0) );
       double t1= _C1 * ( Math.pow(lifeTimeInScaleSeconds,_Beta1) - Math.pow(segmentAgeInScaleSeconds,_Beta1) );
       double t2= _C2 * ( Math.pow(lifeTimeInScaleSeconds,_Beta2) - Math.pow(segmentAgeInScaleSeconds,_Beta2) );
-      double segmentCost = t1 + t2;
+      double t3= _C3 * ( Math.pow(lifeTimeInScaleSeconds,_Beta3) - Math.pow(segmentAgeInScaleSeconds,_Beta3) );
+
+      double segmentCost = t0 + t1 + t2 + t3;
       segmentCost *= segmentMetadata.getTotalDocs();
 
       //LOGGER.info("EASYParameters: td: {}, lf:{}, sa:{}, c1:{}, beta1:{}, c2:{}, beta2:{}, t1:{}, t2:{}, Load:{}",segmentMetadata.getTotalDocs(), lifeTimeInScaleSeconds,segmentAgeInScaleSeconds,_C1,_Beta1,_C2,_Beta2, t1, t2, segmentCost);
@@ -286,7 +302,7 @@ public class ServerPerfResource {
 
       if(segmentAgeInScaleSeconds < 0)
       {
-        segmentAgeInScaleSeconds = (1525132800 - segmentMiddleTime)/_timeScale;
+        segmentAgeInScaleSeconds = (1556668800 - segmentMiddleTime)/_timeScale;
       }
 
       if(segmentAgeInScaleSeconds < 0)
