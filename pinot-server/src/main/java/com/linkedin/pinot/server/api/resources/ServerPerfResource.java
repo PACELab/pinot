@@ -56,7 +56,11 @@ import org.slf4j.LoggerFactory;
 public class ServerPerfResource {
   private static final Logger LOGGER = LoggerFactory.getLogger(ServerPerfResource.class);
   private final String TableCPULoadConfigFilePath = "SegmentAssignmentResource/TableCPULoadMetric.properties";
-  private  final  String EASYLoadConfigFilePath = "SegmentAssignmentResource/EASYLoadMetric_v2.properties";
+  // MS students number
+  //private  final  String EASYLoadConfigFilePath = "SegmentAssignmentResource/EASYLoadMetric_v2.properties";
+
+
+  private  final  String EASYLoadConfigFilePath = "SegmentAssignmentResource/EASYLoadMetric_v3.properties";
 
   @Inject
   ServerInstance serverInstance;
